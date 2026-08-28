@@ -1,0 +1,291 @@
+/* ============================================================
+   KIT NARV — Sistema visual Narv Comunidade
+   ============================================================ */
+
+:root {
+  --azul:    #14357F;
+  --verde:   #0E5C3A;
+  --amarelo: #F5B731;
+  --rosa:    #EE4C8A;
+  --laranja: #F26522;
+  --creme:   #FAF8F5;
+  --branco:  #FFFFFF;
+  --cinza:   #5A6472;
+  --borda:   #E4E0D8;
+  --erro:    #B3261E;
+
+  --raio: 16px;
+  --toque: 56px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--creme);
+  color: var(--azul);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 22px; }
+
+/* ---------- estrutura ---------- */
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.tela { display: none; flex: 1; flex-direction: column; padding: 24px 20px 32px; }
+.tela.ativa { display: flex; }
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.voltar {
+  width: 44px; height: 44px;
+  flex: 0 0 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  color: var(--azul);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.passo-rotulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cinza);
+}
+
+/* barra de progresso do cadastro */
+.progresso { display: flex; gap: 6px; margin-bottom: 26px; }
+.progresso span {
+  height: 6px; flex: 1;
+  border-radius: 3px;
+  background: var(--borda);
+}
+.progresso span.feito { background: var(--azul); }
+
+/* ---------- marca ---------- */
+
+.marca { text-align: center; margin: 40px 0 34px; }
+
+.marca .simbolo {
+  width: 84px; height: 84px;
+  margin: 0 auto 18px;
+  border-radius: 22px 22px 22px 6px;   /* quadrado assimétrico da Narv */
+  background: var(--azul);
+  color: var(--amarelo);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.marca h1 { font-size: 36px; }
+.marca p { color: var(--cinza); margin: 6px 0 0; font-size: 16px; }
+
+/* ---------- formulário ---------- */
+
+.campo { margin-bottom: 18px; }
+
+.campo label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  min-height: var(--toque);
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 17px;
+  color: var(--azul);
+  background: var(--branco);
+  border: 1.5px solid var(--borda);
+  border-radius: 14px;
+  outline: none;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(20, 53, 127, .12);
+}
+
+.campo .dica { font-size: 14px; color: var(--cinza); margin-top: 6px; }
+
+.senha-caixa { position: relative; }
+.senha-caixa input { padding-right: 84px; }
+.senha-caixa button {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  border: none; background: none;
+  color: var(--azul);
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; padding: 8px;
+}
+
+/* ---------- botões ---------- */
+
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%;
+  min-height: var(--toque);
+  padding: 15px 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px; font-weight: 600;
+  border: none; border-radius: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-principal { background: var(--azul); color: var(--branco); }
+.btn-principal:disabled { background: #9AA4BC; cursor: default; }
+.btn-verde { background: var(--verde); color: var(--branco); }
+
+.btn-texto {
+  background: none; border: none;
+  color: var(--azul);
+  font-family: inherit; font-size: 16px; font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 16px;
+  width: 100%;
+}
+
+.rodape-tela { margin-top: auto; padding-top: 24px; }
+
+/* ---------- pastilhas de escolha ---------- */
+
+.escolhas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.escolha {
+  text-align: left;
+  padding: 18px 16px;
+  background: var(--branco);
+  border: 1.5px solid var(--borda);
+  border-radius: var(--raio);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--azul);
+}
+
+.escolha .marcador {
+  width: 30px; height: 30px;
+  border-radius: 9px 9px 9px 3px;
+  background: var(--amarelo);
+  margin-bottom: 12px;
+}
+.escolha:nth-child(2) .marcador { background: var(--rosa); }
+
+.escolha strong { display: block; font-family: 'Poppins', sans-serif; font-size: 17px; }
+.escolha small { color: var(--cinza); font-size: 14px; }
+
+.escolha.marcada { border-color: var(--azul); background: #F0F3FA; }
+
+/* ---------- lista de serviços do cadastro ---------- */
+
+.servico-linha {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--branco);
+  border: 1.5px solid var(--borda);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+
+.servico-linha.marcada { border-color: var(--azul); }
+
+.servico-linha input[type="checkbox"] {
+  width: 26px; height: 26px; flex: 0 0 26px;
+  accent-color: var(--azul);
+}
+
+.servico-linha .nome { flex: 1; font-weight: 500; }
+
+.servico-linha .preco {
+  width: 108px; flex: 0 0 108px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--borda);
+  border-radius: 10px;
+  font-family: inherit; font-size: 16px;
+  text-align: right;
+  color: var(--azul);
+}
+
+/* ---------- avisos ---------- */
+
+.aviso {
+  display: none;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  margin-bottom: 18px;
+}
+.aviso.visivel { display: block; }
+.aviso.erro { background: #FCE9E7; color: var(--erro); border: 1px solid #F3C4BF; }
+.aviso.ok   { background: #E6F2EC; color: var(--verde); border: 1px solid #BFDDCE; }
+
+.carregando { opacity: .6; pointer-events: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tela.ativa { animation: entra .18s ease-out; }
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+}
+
+/* ---------- bloco opcional ---------- */
+
+details.opcional {
+  border: 1.5px solid var(--borda);
+  border-radius: 14px;
+  background: var(--branco);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+details.opcional > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 16px 18px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--azul);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+details.opcional > summary::-webkit-details-marker { display: none; }
+details.opcional > summary::after { content: '+'; font-size: 22px; color: var(--cinza); }
+details.opcional[open] > summary::after { content: '–'; }
+
+details.opcional .conteudo { padding: 0 18px 6px; }

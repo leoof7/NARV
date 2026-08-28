@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14357F">
+<title>Kit Narv</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========== ENTRAR ========== -->
+  <section class="tela ativa" id="tela-login">
+    <div class="marca">
+      <div class="simbolo">N</div>
+      <h1>Narv</h1>
+      <p>Seu negócio na palma da mão</p>
+    </div>
+
+    <div class="aviso" id="aviso-login"></div>
+
+    <form id="form-login">
+      <div class="campo">
+        <label for="login-celular">Celular</label>
+        <input type="tel" id="login-celular" data-celular inputmode="numeric"
+               placeholder="(31) 98842-7315" autocomplete="tel" required>
+      </div>
+
+      <div class="campo">
+        <label for="login-senha">Senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="login-senha" autocomplete="current-password" required>
+          <button type="button">mostrar</button>
+        </div>
+      </div>
+
+      <button class="btn btn-principal" id="btn-entrar" type="submit">Entrar</button>
+      <button class="btn-texto" id="btn-recuperar" type="button">Esqueci minha senha</button>
+    </form>
+
+    <div class="rodape-tela">
+      <button class="btn-texto" data-ir="tela-cadastro">Criar minha conta</button>
+      <button class="btn-texto" data-ir="tela-convite">Recebi um convite da minha equipe</button>
+    </div>
+  </section>
+
+
+  <!-- ========== CRIAR CONTA ========== -->
+  <section class="tela" id="tela-cadastro">
+    <div class="topo">
+      <button class="voltar" data-ir="tela-login" type="button">‹</button>
+      <span class="passo-rotulo">Criar conta</span>
+    </div>
+
+    <h1 id="titulo-cadastro">Vamos começar</h1>
+    <p style="color:#5A6472;margin:10px 0 0">
+      Leva menos de um minuto. Seus serviços e preços você cadastra depois, já dentro do app.
+    </p>
+
+    <div class="aviso" id="aviso-cadastro" style="margin-top:20px"></div>
+
+    <form id="form-cadastro" style="margin-top:20px">
+      <div class="campo">
+        <label for="c-nome">Seu nome</label>
+        <input type="text" id="c-nome" autocomplete="name" required>
+      </div>
+
+      <div class="campo">
+        <label for="c-celular">Celular</label>
+        <input type="tel" id="c-celular" data-celular inputmode="numeric"
+               placeholder="(31) 98842-7315" autocomplete="tel" required>
+        <p class="dica">É com este número que você vai entrar no app.</p>
+      </div>
+
+      <div class="campo" id="campo-senha">
+        <label for="c-senha">Crie uma senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="c-senha" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+        <p class="dica">No mínimo 8 caracteres.</p>
+      </div>
+
+      <div class="campo">
+        <label for="c-tipo">O que você faz</label>
+        <select id="c-tipo" required>
+          <option value="">Escolha…</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>Como você trabalha</label>
+        <div class="escolhas" id="escolha-equipe">
+          <button type="button" class="escolha marcada" data-equipe="nao">
+            <div class="marcador"></div>
+            <strong>Trabalho sozinho</strong>
+            <small>Só eu atendo</small>
+          </button>
+          <button type="button" class="escolha" data-equipe="sim">
+            <div class="marcador"></div>
+            <strong>Tenho equipe</strong>
+            <small>Outras pessoas atendem</small>
+          </button>
+        </div>
+      </div>
+
+      <details class="opcional">
+        <summary>Mais detalhes (opcional)</summary>
+        <div class="conteudo">
+          <div class="campo">
+            <label for="c-negocio">Nome do negócio</label>
+            <input type="text" id="c-negocio" placeholder="Studio Cida Unhas">
+          </div>
+
+          <div class="campo">
+            <label for="c-email">E-mail</label>
+            <input type="email" id="c-email" autocomplete="email" placeholder="para recuperar a conta">
+            <p class="dica">Sem e-mail, a recuperação de senha é feita pela equipe Narv no WhatsApp.</p>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn btn-verde" id="btn-cadastro" type="submit">Criar conta e entrar</button>
+    </form>
+  </section>
+
+
+  <!-- ========== CONVITE ========== -->
+  <section class="tela" id="tela-convite">
+    <div class="topo">
+      <button class="voltar" data-ir="tela-login" type="button">‹</button>
+      <span class="passo-rotulo">Entrar com convite</span>
+    </div>
+
+    <h1>Recebi um convite</h1>
+    <p style="color:#5A6472;margin:10px 0 0">
+      Use o código que o dono do negócio te mandou pelo WhatsApp.
+    </p>
+
+    <div class="aviso" id="aviso-convite" style="margin-top:20px"></div>
+
+    <form id="form-convite" style="margin-top:20px">
+      <div class="campo">
+        <label for="v-codigo">Código do convite</label>
+        <input type="text" id="v-codigo" placeholder="A1B2C3D4" autocapitalize="characters" required>
+      </div>
+
+      <div class="campo">
+        <label for="v-nome">Seu nome</label>
+        <input type="text" id="v-nome" autocomplete="name" required>
+      </div>
+
+      <div class="campo">
+        <label for="v-celular">Celular</label>
+        <input type="tel" id="v-celular" data-celular inputmode="numeric"
+               placeholder="(31) 98842-7315" required>
+      </div>
+
+      <div class="campo">
+        <label for="v-senha">Crie uma senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="v-senha" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+      </div>
+
+      <button class="btn btn-principal" id="btn-convite" type="submit">Entrar na equipe</button>
+    </form>
+  </section>
+
+
+  <!-- ========== CONFERÊNCIA (provisória) ========== -->
+  <section class="tela" id="tela-ok">
+    <div class="marca">
+      <div class="simbolo" style="background:#0E5C3A;color:#fff">✓</div>
+      <h1>Tudo certo</h1>
+      <p>Sua conta está funcionando</p>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid #E4E0D8;border-radius:16px;padding:20px">
+      <p style="margin:0 0 10px"><strong id="ok-nome"></strong></p>
+      <p style="margin:0 0 6px;color:#5A6472" id="ok-papel"></p>
+      <p style="margin:0 0 6px;color:#5A6472" id="ok-negocio"></p>
+      <p style="margin:0 0 6px;color:#5A6472" id="ok-celular"></p>
+      <p style="margin:0;color:#5A6472" id="ok-servicos"></p>
+    </div>
+
+    <p style="color:#5A6472;margin-top:20px">
+      Tela provisória. O painel de Início, o tutorial e o cadastro de serviços
+      entram no próximo bloco.
+    </p>
+
+    <div class="rodape-tela">
+      <button class="btn-texto" id="btn-sair" type="button">Sair da conta</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
