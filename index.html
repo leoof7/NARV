@@ -175,36 +175,297 @@
   </section>
 
 
-  <!-- ========== CONFERÊNCIA (provisória) ========== -->
-  <section class="tela" id="tela-ok">
-    <div class="marca">
-      <div class="simbolo" style="background:#0E5C3A;color:#fff">✓</div>
-      <h1>Tudo certo</h1>
-      <p>Sua conta está funcionando</p>
-    </div>
 
-    <div style="background:#fff;border:1.5px solid #E4E0D8;border-radius:16px;padding:20px">
-      <p style="margin:0 0 10px"><strong id="ok-nome"></strong></p>
-      <p style="margin:0 0 6px;color:#5A6472" id="ok-papel"></p>
-      <p style="margin:0 0 6px;color:#5A6472" id="ok-negocio"></p>
-      <p style="margin:0 0 6px;color:#5A6472" id="ok-celular"></p>
-      <p style="margin:0;color:#5A6472" id="ok-servicos"></p>
-    </div>
-
-    <p style="color:#5A6472;margin-top:20px">
-      Tela provisória. O painel de Início, o tutorial e o cadastro de serviços
-      entram no próximo bloco.
-    </p>
-
-    <div class="rodape-tela">
-      <button class="btn-texto" id="btn-sair" type="button">Sair da conta</button>
-    </div>
-  </section>
 
 </div>
+
+<!-- ============================================================
+     O APP
+     ============================================================ -->
+
+<div class="painel" id="painel">
+
+  <header class="cabecalho">
+    <h2 id="titulo-aba">Início</h2>
+    <button class="avatar" id="avatar" title="Ajustes">?</button>
+  </header>
+
+  <main class="conteudo">
+    <section class="aba ativa" id="aba-inicio"></section>
+    <section class="aba" id="aba-servicos"></section>
+    <section class="aba" id="aba-orcamentos">
+      <div class="vazio"><strong>Orçamentos</strong>
+        Esta parte chega no próximo bloco: orçamento rápido, calculadora de preço,
+        PDF e envio pelo WhatsApp.</div>
+    </section>
+    <section class="aba" id="aba-clientes"></section>
+    <section class="aba" id="aba-financeiro"></section>
+  </main>
+
+  <button class="fab" id="fab" title="Novo">+</button>
+
+  <nav class="abas">
+    <button data-aba="inicio" class="ativa"><span class="ico">⌂</span>Início</button>
+    <button data-aba="servicos"><span class="ico">✓</span>Serviços</button>
+    <button data-aba="orcamentos"><span class="ico">▤</span>Orçamentos</button>
+    <button data-aba="clientes"><span class="ico">☺</span>Clientes</button>
+    <button data-aba="financeiro"><span class="ico">$</span>Financeiro</button>
+  </nav>
+</div>
+
+
+<!-- ========== FOLHA: + NOVO ========== -->
+<div class="folha" id="folha-novo">
+  <div class="painel-folha">
+    <h3>O que você quer fazer?</h3>
+    <button class="acao" id="novo-servico"><span class="quad q-rosa">✓</span>Registrar um serviço</button>
+    <button class="acao" id="novo-cliente"><span class="quad q-azul">☺</span>Cadastrar um cliente</button>
+    <button class="acao" id="nova-entrada"><span class="quad q-verde">+</span>Entrada de dinheiro</button>
+    <button class="acao" id="nova-saida"><span class="quad q-laranja">−</span>Saída de dinheiro</button>
+    <button class="btn-texto" data-fecha="folha-novo">Cancelar</button>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: CLIENTE ========== -->
+<div class="folha cheia" id="folha-cliente">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-cliente" type="button">‹</button>
+      <h3>Novo cliente</h3>
+    </div>
+    <div class="aviso" id="aviso-cliente"></div>
+    <form id="form-cliente">
+      <div class="campo"><label for="cl-nome">Nome</label>
+        <input type="text" id="cl-nome" required></div>
+      <div class="campo"><label for="cl-telefone">Telefone</label>
+        <input type="tel" id="cl-telefone" data-celular inputmode="numeric" placeholder="(31) 98842-7315"></div>
+      <div class="campo"><label for="cl-obs">Observação (opcional)</label>
+        <input type="text" id="cl-obs" placeholder="prefere de manhã, portão azul…"></div>
+      <button class="btn btn-principal" id="btn-salvar-cliente" type="submit">Salvar cliente</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: SERVIÇO ========== -->
+<div class="folha cheia" id="folha-servico">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-servico" type="button">‹</button>
+      <h3>Registrar serviço</h3>
+    </div>
+    <div class="aviso" id="aviso-servico"></div>
+    <form id="form-servico">
+      <div class="campo"><label for="sv-cliente">Cliente</label>
+        <select id="sv-cliente" required></select></div>
+
+      <div class="campo"><label for="sv-servico">Serviço</label>
+        <select id="sv-servico"></select></div>
+
+      <div class="campo" id="campo-outro"><label for="sv-outro-nome">Qual serviço</label>
+        <input type="text" id="sv-outro-nome"></div>
+
+      <div class="campo"><label for="sv-valor">Valor cobrado</label>
+        <input type="number" id="sv-valor" inputmode="decimal" min="0" step="0.01" required></div>
+
+      <div class="campo"><label for="sv-data">Data</label>
+        <input type="date" id="sv-data" required></div>
+
+      <div class="campo"><label>Situação</label>
+        <div class="pastilhas" id="sv-situacao">
+          <button type="button" data-valor="pago" class="marcada">Pago</button>
+          <button type="button" data-valor="pendente">A receber</button>
+          <button type="button" data-valor="agendado">Agendado</button>
+        </div></div>
+
+      <div class="campo"><label>Forma de pagamento</label>
+        <div class="pastilhas" id="sv-pagamento">
+          <button type="button" data-valor="Dinheiro" class="marcada">Dinheiro</button>
+          <button type="button" data-valor="Pix">Pix</button>
+          <button type="button" data-valor="Cartão">Cartão</button>
+          <button type="button" data-valor="Fiado">Fiado</button>
+        </div></div>
+
+      <details class="opcional">
+        <summary>Mais detalhes (opcional)</summary>
+        <div class="conteudo">
+          <div class="campo"><label for="sv-endereco">Endereço do serviço</label>
+            <input type="text" id="sv-endereco" placeholder="Rua, número, referência"></div>
+        </div>
+      </details>
+
+      <button class="btn btn-verde" id="btn-salvar-servico" type="submit">Salvar serviço</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: ENTRADA / SAÍDA ========== -->
+<div class="folha cheia" id="folha-lancamento">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-lancamento" type="button">‹</button>
+      <h3 id="titulo-lancamento">Entrada</h3>
+    </div>
+    <div class="aviso" id="aviso-lancamento"></div>
+    <form id="form-lancamento">
+      <input type="hidden" id="lc-tipo">
+
+      <div class="campo"><label for="lc-valor">Valor</label>
+        <input type="number" id="lc-valor" inputmode="decimal" min="0" step="0.01" required></div>
+
+      <div class="campo"><label for="lc-data">Data</label>
+        <input type="date" id="lc-data" required></div>
+
+      <div class="campo"><label for="lc-categoria">Do que se trata</label>
+        <input type="text" id="lc-categoria" placeholder="material, combustível, corte…"></div>
+
+      <div class="campo" id="campo-natureza"><label>Esta saída é</label>
+        <div class="pastilhas" id="lc-natureza">
+          <button type="button" data-valor="negocio" class="marcada">Do negócio</button>
+          <button type="button" data-valor="pessoal">Minha, pessoal</button>
+        </div></div>
+
+      <div class="campo"><label for="lc-obs">Observação (opcional)</label>
+        <input type="text" id="lc-obs"></div>
+
+      <button class="btn btn-principal" id="btn-salvar-lancamento" type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: META MENSAL ========== -->
+<div class="folha cheia" id="folha-meta">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-meta" type="button">‹</button>
+      <h3>Sua meta mensal</h3>
+    </div>
+    <p style="color:#5A6472;margin:0 0 18px">
+      Quanto você gostaria de receber por mês? Isso será sua meta. Depois, o app
+      ajuda você a acompanhar se o negócio consegue pagar esse valor.
+    </p>
+    <div class="aviso" id="aviso-meta"></div>
+    <form id="form-meta">
+      <div class="campo"><label for="mt-valor">Valor por mês</label>
+        <input type="number" id="mt-valor" inputmode="decimal" min="0" step="0.01" placeholder="2000,00"></div>
+      <div class="campo"><label for="mt-dia">Em que dia você costuma retirar</label>
+        <input type="number" id="mt-dia" inputmode="numeric" min="1" max="31" placeholder="10"></div>
+      <button class="btn btn-principal" id="btn-salvar-meta" type="submit">Salvar meta</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: RETIRADA ========== -->
+<div class="folha cheia" id="folha-retirada">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-retirada" type="button">‹</button>
+      <h3>Registrar retirada</h3>
+    </div>
+    <div class="aviso" id="aviso-retirada"></div>
+    <form id="form-retirada">
+      <div class="campo"><label>Tipo</label>
+        <div class="pastilhas" id="rt-tipo">
+          <button type="button" data-valor="prolabore" class="marcada">Retirada do mês</button>
+          <button type="button" data-valor="extra">Retirada extra</button>
+        </div></div>
+      <div class="campo"><label for="rt-valor">Valor</label>
+        <input type="number" id="rt-valor" inputmode="decimal" min="0" step="0.01" required></div>
+      <div class="campo"><label for="rt-data">Data</label>
+        <input type="date" id="rt-data" required></div>
+      <button class="btn btn-principal" id="btn-salvar-retirada" type="submit">Salvar retirada</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: AJUSTES ========== -->
+<div class="folha cheia" id="folha-ajustes">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-ajustes" type="button">‹</button>
+      <h3>Ajustes</h3>
+    </div>
+
+    <div class="cartao">
+      <p class="valor" style="font-size:21px" id="aj-nome"></p>
+      <p class="rotulo" style="margin:4px 0 0" id="aj-papel"></p>
+      <p class="rotulo" style="margin:2px 0 0" id="aj-negocio"></p>
+    </div>
+
+    <p class="secao-titulo">Meu negócio</p>
+    <button class="item" id="aj-catalogo"><div class="corpo">
+      <span class="titulo">Meus serviços e preços</span>
+      <span class="sub" id="aj-qtd-servicos"></span></div><div class="direita">›</div></button>
+    <button class="item" id="aj-imagem"><div class="corpo">
+      <span class="titulo">Foto ou logo</span>
+      <span class="sub">Aparece no app e no orçamento</span></div><div class="direita">›</div></button>
+
+    <p class="secao-titulo">Conta</p>
+    <button class="btn btn-secundario" id="aj-sair">Sair da conta</button>
+    <button class="btn btn-perigo" id="aj-apagar">Apagar minha conta</button>
+    <p class="dica" style="margin-top:10px">
+      Apagar a conta remove clientes, serviços e financeiro. Não tem volta.
+    </p>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: PERFIL DO CLIENTE ========== -->
+<div class="folha cheia" id="folha-perfil">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-perfil" type="button">‹</button>
+      <h3>Cliente</h3>
+    </div>
+    <div id="conteudo-perfil"></div>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: CATÁLOGO ========== -->
+<div class="folha cheia" id="folha-catalogo">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-catalogo" type="button">‹</button>
+      <h3>Meus serviços e preços</h3>
+    </div>
+    <div id="conteudo-catalogo"></div>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: IMAGEM ========== -->
+<div class="folha cheia" id="folha-imagem">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-imagem" type="button">‹</button>
+      <h3>Foto ou logo</h3>
+    </div>
+    <div class="aviso" id="aviso-imagem"></div>
+    <form id="form-imagem">
+      <div class="campo"><label>Esta imagem é</label>
+        <div class="pastilhas" id="img-tipo">
+          <button type="button" data-valor="foto" class="marcada">Minha foto</button>
+          <button type="button" data-valor="logo">Logo do negócio</button>
+        </div>
+        <p class="dica">A logo do negócio aparece também no PDF do orçamento.</p>
+      </div>
+      <div class="campo"><label for="img-arquivo">Escolher imagem</label>
+        <input type="file" id="img-arquivo" accept="image/*" required></div>
+      <button class="btn btn-principal" id="btn-salvar-imagem" type="submit">Salvar imagem</button>
+    </form>
+  </div>
+</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="painel.js"></script>
 </body>
 </html>

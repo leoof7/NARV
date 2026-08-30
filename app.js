@@ -83,15 +83,30 @@ $$('input[data-celular]').forEach(formatarCelular);
 // Tipos de atividade
 // ------------------------------------------------------------
 
-const ATIVIDADES = [
-  'Manicure e pedicure', 'Cabeleireiro(a)', 'Barbeiro', 'Maquiador(a)', 'Esteticista',
-  'Diarista', 'Costureira', 'Jardineiro', 'Motorista', 'Mecânico',
-  'Pedreiro', 'Mestre de obras', 'Pintor', 'Eletricista', 'Encanador',
-  'Marceneiro', 'Gesseiro', 'Serralheiro', 'Outro'
-];
+const SERVICOS_SUGERIDOS = {
+  'Manicure e pedicure': ['Mão', 'Pé', 'Mão e pé', 'Esmaltação em gel', 'Alongamento'],
+  'Cabeleireiro(a)':     ['Corte feminino', 'Corte masculino', 'Escova', 'Coloração', 'Hidratação'],
+  'Barbeiro':            ['Corte', 'Barba', 'Corte e barba', 'Pezinho', 'Sobrancelha'],
+  'Maquiador(a)':        ['Maquiagem social', 'Noiva', 'Madrinha', 'Curso'],
+  'Esteticista':         ['Limpeza de pele', 'Massagem', 'Depilação', 'Drenagem'],
+  'Diarista':            ['Diária', 'Meia diária', 'Faxina pesada', 'Passar roupa'],
+  'Costureira':          ['Bainha', 'Ajuste de cintura', 'Troca de zíper', 'Peça sob medida', 'Conserto simples'],
+  'Jardineiro':          ['Corte de grama', 'Poda', 'Limpeza de terreno', 'Diária'],
+  'Motorista':           ['Corrida', 'Frete', 'Mudança', 'Diária'],
+  'Mecânico':            ['Troca de óleo', 'Revisão', 'Freios', 'Diagnóstico'],
+  'Pedreiro':            ['Alvenaria (m²)', 'Reboco (m²)', 'Contrapiso (m²)', 'Assentamento de piso (m²)', 'Diária'],
+  'Mestre de obras':     ['Diária', 'Empreitada', 'Administração de obra', 'Visita técnica'],
+  'Pintor':              ['Pintura interna (m²)', 'Pintura externa (m²)', 'Textura', 'Massa corrida', 'Verniz'],
+  'Eletricista':         ['Instalação de tomada', 'Troca de disjuntor', 'Instalação de chuveiro', 'Ponto de luz', 'Visita técnica'],
+  'Encanador':           ['Desentupimento', 'Troca de registro', 'Conserto de vazamento', 'Instalação de torneira', 'Visita técnica'],
+  'Marceneiro':          ['Móvel planejado (m²)', 'Conserto de móvel', 'Instalação', 'Porta sob medida', 'Diária'],
+  'Gesseiro':            ['Forro de gesso (m²)', 'Sanca (m)', 'Drywall (m²)', 'Reparo'],
+  'Serralheiro':         ['Portão', 'Grade (m²)', 'Corrimão (m)', 'Solda e reparo'],
+  'Outro':               []
+};
 
 const listaTipos = $('#c-tipo');
-ATIVIDADES.forEach(tipo => {
+Object.keys(SERVICOS_SUGERIDOS).forEach(tipo => {
   const op = document.createElement('option');
   op.value = tipo;
   op.textContent = tipo;
@@ -163,6 +178,26 @@ $$('.senha-caixa button').forEach(botao => {
     const escondida = campo.type === 'password';
     campo.type = escondida ? 'text' : 'password';
     botao.textContent = escondida ? 'esconder' : 'mostrar';
+  });
+});
+
+
+// Enter não envia o formulário. Ele passa para o campo seguinte.
+// Sem isto, a pessoa envia o cadastro pela metade sem perceber.
+$$('form').forEach(form => {
+  form.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') return;
+
+    e.preventDefault();
+
+    const campos = Array.from(
+      form.querySelectorAll('input:not([type=hidden]), select')
+    ).filter(c => c.offsetParent !== null);
+
+    const proximo = campos[campos.indexOf(e.target) + 1];
+    if (proximo) proximo.focus();
+    else e.target.blur();
   });
 });
 
@@ -331,24 +366,8 @@ async function depoisDeEntrar() {
     return irPara('tela-cadastro');
   }
 
-  const { count } = await sb
-    .from('servicos_catalogo')
-    .select('*', { count: 'exact', head: true });
-
-  $('#ok-nome').textContent     = perfil.nome;
-  $('#ok-papel').textContent    = perfil.papel === 'dono' ? 'Dono do negócio' : 'Profissional';
-  $('#ok-negocio').textContent  = perfil.negocios?.nome || perfil.negocios?.tipo_atividade || '—';
-  $('#ok-celular').textContent  = perfil.celular;
-  $('#ok-servicos').textContent = (count ?? 0) + ' serviço(s) no catálogo';
-
-  irPara('tela-ok');
+  await abrirApp();
 }
-
-$('#btn-sair').addEventListener('click', async () => {
-  await sb.auth.signOut();
-  location.reload();
-});
-
 
 // ------------------------------------------------------------
 // 5. NAVEGAÇÃO
@@ -363,7 +382,7 @@ $$('[data-ir]').forEach(el => {
 // 6. ABERTURA
 // ------------------------------------------------------------
 
-(async function iniciar() {
+async function iniciar() {
   const { data } = await sb.auth.getSession();
   if (data.session) await depoisDeEntrar();
-})();
+}
