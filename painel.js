@@ -863,6 +863,7 @@ async function abrirApp() {
   if (!ok) return false;
   await carregarImagem();
   $$('.tela').forEach(t => t.classList.remove('ativa'));
+  $('.app').style.display = 'none';   // some com a área de login, senão sobra espaço em branco
   $('#painel').classList.add('ativo');
   abrirAba('inicio');
   return true;

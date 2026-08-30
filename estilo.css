@@ -412,14 +412,14 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
 
 /* botão + Novo */
 .fab {
-  position: fixed; bottom: 78px; right: 50%;
-  transform: translateX(calc(240px - 20px));
+  position: fixed; bottom: 78px; left: 50%;
+  transform: translateX(160px);
   width: 60px; height: 60px; border-radius: 20px 20px 20px 6px;
   background: var(--azul); color: var(--branco);
   border: none; font-size: 30px; line-height: 1; cursor: pointer;
   box-shadow: 0 6px 16px rgba(20,53,127,.28); z-index: 31;
 }
-@media (max-width: 520px) { .fab { right: 20px; transform: none; } }
+@media (max-width: 520px) { .fab { left: auto; right: 20px; transform: none; } }
 
 /* folha inferior */
 .folha {
