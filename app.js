@@ -10,6 +10,21 @@
 // ficam para dentro do app, depois que ela já entrou.
 // ============================================================
 
+// Se a biblioteca ou as chaves não carregarem, avisa na tela
+// em vez de deixar o app mudo.
+if (!window.supabase) {
+  document.body.innerHTML =
+    '<p style="padding:30px;font-family:sans-serif;color:#B3261E">' +
+    'A biblioteca do Supabase não carregou. Verifique a internet e recarregue.</p>';
+  throw new Error('supabase-js não carregou');
+}
+if (typeof CONFIG === 'undefined') {
+  document.body.innerHTML =
+    '<p style="padding:30px;font-family:sans-serif;color:#B3261E">' +
+    'O arquivo config.js não foi encontrado. Confira se ele está na mesma pasta.</p>';
+  throw new Error('config.js ausente');
+}
+
 const sb = window.supabase.createClient(
   CONFIG.SUPABASE_URL,
   CONFIG.SUPABASE_ANON_KEY
@@ -30,8 +45,16 @@ let temEquipe = false;
 // ------------------------------------------------------------
 
 // Deixa só os números. Aceita 10 ou 11 dígitos (com DDD).
+// Se a pessoa digitar o 55 do Brasil na frente, tira.
+function tirarCodigoPais(digitos) {
+  // 12 ou 13 dígitos começando com 55 = veio com código do país.
+  // Não mexe em 10 ou 11 dígitos, porque 55 também é DDD de Santa Maria.
+  if (digitos.length > 11 && digitos.startsWith('55')) return digitos.slice(2);
+  return digitos;
+}
+
 function limparCelular(valor) {
-  const so = (valor || '').replace(/\D/g, '');
+  const so = tirarCodigoPais((valor || '').replace(/\D/g, ''));
   if (so.length < 10 || so.length > 11) return null;
   return '55' + so;
 }
@@ -44,7 +67,7 @@ function loginDoCelular(numero) {
 // Escreve bonito enquanto digita: (31) 98842-7315
 function formatarCelular(campo) {
   campo.addEventListener('input', () => {
-    const d = campo.value.replace(/\D/g, '').slice(0, 11);
+    const d = tirarCodigoPais(campo.value.replace(/\D/g, '')).slice(0, 11);
     const corte = d.length > 10 ? 7 : 6;
     let saida = d;
     if (d.length > 2) saida = '(' + d.slice(0, 2) + ') ' + d.slice(2);
@@ -90,6 +113,8 @@ function aviso(id, texto, tipo = 'erro') {
   const el = $('#' + id);
   el.textContent = texto;
   el.className = 'aviso visivel ' + tipo;
+  // sem isto, a mensagem nasce no topo e a pessoa não vê
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function limparAviso(id) { $('#' + id).className = 'aviso'; }
@@ -107,7 +132,15 @@ function ocupado(botao, sim, textoOcupado = 'Aguarde…') {
 
 // Traduz o erro técnico para algo que a pessoa entende
 function mensagemDeErro(erro) {
+  console.error('Kit Narv — erro:', erro);
   const m = (erro?.message || '').toLowerCase();
+
+  if (m.includes('too many') || m.includes('rate limit') || erro?.status === 429)
+    return 'Muitas tentativas seguidas. O servidor bloqueou por alguns minutos. ' +
+           'Espere uns 15 minutos e tente de novo.';
+
+  if (m.includes('could not find the function') || m.includes('schema cache'))
+    return 'O banco de dados ainda não foi atualizado. Rode o arquivo 04-login-por-celular.sql no Supabase.';
   if (m.includes('invalid login'))       return 'Celular ou senha não conferem. Tente de novo.';
   if (m.includes('already registered') ||
       m.includes('already been registered') ||
@@ -117,7 +150,10 @@ function mensagemDeErro(erro) {
   if (m.includes('convite'))             return erro.message;
   if (m.includes('já foi criada'))       return 'Esta conta já está pronta. É só entrar.';
   if (m.includes('failed to fetch'))     return 'Sem conexão com o servidor. Verifique a internet.';
-  return 'Não deu certo agora. Tente de novo em instantes.';
+
+  // Mensagem técnica para conseguirmos diagnosticar durante os testes.
+  // Trocar por texto amigável antes de abrir para os participantes.
+  return 'Não deu certo. Detalhe técnico: ' + (erro?.message || 'sem mensagem');
 }
 
 // Mostrar e esconder senha
@@ -218,7 +254,20 @@ $('#form-cadastro').addEventListener('submit', async (e) => {
   });
 
   ocupado(botao, false);
-  if (error) return aviso('aviso-cadastro', mensagemDeErro(error));
+
+  if (error) {
+    // A sessão guardada aponta para um usuário que não existe mais
+    // (apagado no painel durante os testes). Limpa e recomeça.
+    const texto = (error.message || '') + (error.code || '');
+    if (texto.includes('23503') || texto.toLowerCase().includes('foreign key')) {
+      await sb.auth.signOut();
+      localStorage.clear();
+      aviso('aviso-cadastro',
+        'Sua sessão antiga expirou. Recarregando para começar de novo…', 'ok');
+      return setTimeout(() => location.reload(), 1500);
+    }
+    return aviso('aviso-cadastro', mensagemDeErro(error));
+  }
 
   await depoisDeEntrar();
 });
