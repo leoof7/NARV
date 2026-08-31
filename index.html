@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="estilo.css?v=5">
 </head>
 <body>
 
@@ -18,7 +18,34 @@
   <!-- ========== ENTRAR ========== -->
   <section class="tela ativa" id="tela-login">
     <div class="marca">
-      <div class="simbolo">N</div>
+      <!-- Papagaio da Narv, desenhado em SVG a partir do manual da marca.
+           Fica nítido em qualquer tamanho de tela e não pesa nada.
+           Esta é a marca da NARV — nunca a foto ou a logo do cliente. -->
+      <div class="simbolo">
+        <svg viewBox="0 0 140 140" role="img" aria-label="Narv">
+          <!-- topete -->
+          <path d="M40.5 1 L100.5 15.8 L51 21 Z" fill="#2E8B62"/>
+          <path d="M37.5 19.2 L51.5 20.6 L44.5 31.5 Z" fill="#2E8B62"/>
+          <!-- corpo -->
+          <path d="M39.5 133 L39.5 47 A30.75 30.75 0 0 1 101 47 L101 103
+                   A30 30 0 0 1 71 133 Z" fill="#1E3F91"/>
+          <!-- bico de cima -->
+          <path d="M100.5 16.5 A33.5 34.5 0 0 1 134 51 L100.5 51 Z" fill="#F9B32B"/>
+          <!-- bico de baixo -->
+          <path d="M100.5 51.6 L122.5 51.6 A21.8 20.5 0 0 1 100.5 72 Z" fill="#F5851F"/>
+          <!-- rosto -->
+          <ellipse cx="84.75" cy="46.75" rx="15.75" ry="25.25" fill="#FCF4F0"/>
+          <!-- bochecha e olho -->
+          <circle cx="73.5" cy="59" r="9.3" fill="#F09CC4"/>
+          <circle cx="87.5" cy="40.5" r="8" fill="#141414"/>
+          <!-- asa: a laranja aparece por baixo da amarela -->
+          <path d="M0.5 100 C18 76 48 62 68 68 C82 72 82 88 66 97
+                   C48 107 20 116 8 115 Z" fill="#F5851F"
+                transform="translate(5,9)"/>
+          <path d="M0.5 100 C18 76 48 62 68 68 C82 72 82 88 66 97
+                   C48 107 20 116 8 115 Z" fill="#F9B32B"/>
+        </svg>
+      </div>
       <h1>Narv</h1>
       <p>Seu negócio na palma da mão</p>
     </div>
@@ -92,6 +119,11 @@
         <select id="c-tipo" required>
           <option value="">Escolha…</option>
         </select>
+      </div>
+
+      <div class="campo" id="campo-outra-atividade" style="display:none">
+        <label for="c-outra-atividade">Escreva o que você faz</label>
+        <input type="text" id="c-outra-atividade" placeholder="chaveiro, tapeceiro, confeiteira…">
       </div>
 
       <div class="campo">
@@ -193,23 +225,41 @@
   <main class="conteudo">
     <section class="aba ativa" id="aba-inicio"></section>
     <section class="aba" id="aba-servicos"></section>
-    <section class="aba" id="aba-orcamentos">
-      <div class="vazio"><strong>Orçamentos</strong>
-        Esta parte chega no próximo bloco: orçamento rápido, calculadora de preço,
-        PDF e envio pelo WhatsApp.</div>
-    </section>
+    <section class="aba" id="aba-orcamentos"></section>
     <section class="aba" id="aba-clientes"></section>
     <section class="aba" id="aba-financeiro"></section>
   </main>
 
   <button class="fab" id="fab" title="Novo">+</button>
 
+  <!-- Ícones em SVG. Antes eram caracteres de texto (⌂ ✓ ▤ ☺ $) e o
+       iPhone transformava o ☺ em emoji colorido, destoando dos outros. -->
   <nav class="abas">
-    <button data-aba="inicio" class="ativa"><span class="ico">⌂</span>Início</button>
-    <button data-aba="servicos"><span class="ico">✓</span>Serviços</button>
-    <button data-aba="orcamentos"><span class="ico">▤</span>Orçamentos</button>
-    <button data-aba="clientes"><span class="ico">☺</span>Clientes</button>
-    <button data-aba="financeiro"><span class="ico">$</span>Financeiro</button>
+    <button data-aba="inicio" class="ativa"><span class="ico"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.2 12 3l9 7.2"/><path d="M5.5 9.2V20h13V9.2"/><path d="M9.8 20v-5.4h4.4V20"/>
+      </svg></span>Início</button>
+
+    <button data-aba="servicos"><span class="ico"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4.5 12.5 9.5 17.5 19.5 6.5"/>
+      </svg></span>Serviços</button>
+
+    <button data-aba="orcamentos"><span class="ico"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4.5" y="3" width="15" height="18" rx="2.2"/>
+      <path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>
+      </svg></span>Orçamentos</button>
+
+    <button data-aba="clientes"><span class="ico"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c0-3.6 3.2-5.8 7.2-5.8s7.2 2.2 7.2 5.8"/>
+      </svg></span>Clientes</button>
+
+    <button data-aba="financeiro"><span class="ico"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 3v18"/><path d="M16.5 6.8C15.6 5.6 14 5 12 5 9.5 5 8 6.3 8 8.2c0 4.4 8.6 2 8.6 6.8 0 2-1.7 3.5-4.6 3.5-2.2 0-3.9-.7-4.8-2"/>
+      </svg></span>Financeiro</button>
   </nav>
 </div>
 
@@ -222,6 +272,7 @@
     <button class="acao" id="novo-cliente"><span class="quad q-azul">☺</span>Cadastrar um cliente</button>
     <button class="acao" id="nova-entrada"><span class="quad q-verde">+</span>Entrada de dinheiro</button>
     <button class="acao" id="nova-saida"><span class="quad q-laranja">−</span>Saída de dinheiro</button>
+    <button class="acao" id="novo-orcamento"><span class="quad q-azul">▤</span>Fazer um orçamento</button>
     <button class="btn-texto" data-fecha="folha-novo">Cancelar</button>
   </div>
 </div>
@@ -232,7 +283,7 @@
   <div class="painel-folha">
     <div class="linha-topo">
       <button class="voltar" data-fecha="folha-cliente" type="button">‹</button>
-      <h3>Novo cliente</h3>
+      <h3 id="titulo-cliente">Novo cliente</h3>
     </div>
     <div class="aviso" id="aviso-cliente"></div>
     <form id="form-cliente">
@@ -242,7 +293,27 @@
         <input type="tel" id="cl-telefone" data-celular inputmode="numeric" placeholder="(31) 98842-7315"></div>
       <div class="campo"><label for="cl-obs">Observação (opcional)</label>
         <input type="text" id="cl-obs" placeholder="prefere de manhã, portão azul…"></div>
+
+      <details class="opcional">
+        <summary>Dados da empresa (opcional)</summary>
+        <div class="conteudo">
+          <div class="campo"><label for="cl-empresa">Nome da empresa</label>
+            <input type="text" id="cl-empresa"></div>
+          <div class="campo"><label for="cl-responsavel">Responsável</label>
+            <input type="text" id="cl-responsavel" placeholder="quem responde pela empresa"></div>
+          <div class="campo"><label for="cl-cnpj">CNPJ</label>
+            <input type="text" id="cl-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00"></div>
+          <div class="campo"><label for="cl-endereco">Endereço</label>
+            <input type="text" id="cl-endereco" placeholder="rua, número, bairro"></div>
+          <div class="campo"><label for="cl-email">E-mail</label>
+            <input type="email" id="cl-email"></div>
+          <p class="dica">Estes dados aparecem no PDF do orçamento.</p>
+        </div>
+      </details>
+
+      <div class="aviso" id="aviso-duplicado"></div>
       <button class="btn btn-principal" id="btn-salvar-cliente" type="submit">Salvar cliente</button>
+      <button class="btn btn-secundario" id="btn-arquivar-cliente" type="button" style="display:none">Arquivar este cliente</button>
     </form>
   </div>
 </div>
@@ -267,10 +338,15 @@
         <input type="text" id="sv-outro-nome"></div>
 
       <div class="campo"><label for="sv-valor">Valor cobrado</label>
-        <input type="number" id="sv-valor" inputmode="decimal" min="0" step="0.01" required></div>
+        <input type="text" id="sv-valor" data-dinheiro inputmode="decimal" required></div>
 
-      <div class="campo"><label for="sv-data">Data</label>
-        <input type="date" id="sv-data" required></div>
+      <div class="dupla-campo">
+        <div class="campo"><label for="sv-data">Data</label>
+          <input type="date" id="sv-data" required></div>
+        <div class="campo" id="campo-hora"><label for="sv-hora">Hora</label>
+          <input type="time" id="sv-hora">
+          <p class="dica">Deixe vazio se você marca por dia.</p></div>
+      </div>
 
       <div class="campo"><label>Situação</label>
         <div class="pastilhas" id="sv-situacao">
@@ -301,6 +377,288 @@
 </div>
 
 
+<!-- ========== FOLHA: TIPO DE ORÇAMENTO ========== -->
+<div class="folha" id="folha-tipo-orcamento">
+  <div class="painel-folha">
+    <h3>Como você quer fazer?</h3>
+    <button class="acao alta" id="orc-rapido">
+      <span class="quad q-verde">✓</span>
+      <span class="texto"><strong>Já sei o valor</strong>
+      <small>Você escreve quanto vai cobrar</small></span>
+    </button>
+    <button class="acao alta" id="orc-calculadora">
+      <span class="quad q-azul">=</span>
+      <span class="texto"><strong>Me ajuda a calcular</strong>
+      <small>Soma material, diária e o quanto você quer ganhar</small></span>
+    </button>
+    <button class="btn-texto" data-fecha="folha-tipo-orcamento">Cancelar</button>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: ORÇAMENTO RÁPIDO ========== -->
+<div class="folha cheia" id="folha-orcamento">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-orcamento" type="button">‹</button>
+      <h3 id="titulo-orcamento">Novo orçamento</h3>
+    </div>
+    <div class="aviso" id="aviso-orcamento"></div>
+    <form id="form-orcamento">
+      <div class="campo"><label for="or-cliente">Cliente</label>
+        <select id="or-cliente" required></select>
+        <button type="button" class="btn-texto" id="or-novo-cliente"
+                style="text-align:left;padding:8px 0;width:auto">Cadastrar um cliente novo</button></div>
+
+      <div class="campo"><label for="or-titulo">O que é o serviço</label>
+        <input type="text" id="or-titulo" placeholder="Pintura da sala e do corredor" required></div>
+
+      <div class="campo"><label for="or-descricao">Detalhes (opcional)</label>
+        <textarea id="or-descricao" rows="4"
+          placeholder="Duas demãos, massa corrida onde precisar, tinta por conta do cliente"></textarea></div>
+
+      <div class="campo"><label for="or-valor">Quanto você vai cobrar</label>
+        <input type="text" id="or-valor" data-dinheiro inputmode="decimal" required></div>
+
+      <div class="campo"><label for="or-prazo">Prazo</label>
+        <input type="text" id="or-prazo" placeholder="5 dias úteis"></div>
+
+      <div class="campo"><label for="or-validade">Vale até</label>
+        <input type="date" id="or-validade">
+        <p class="dica">Depois desta data o orçamento se marca como vencido sozinho.</p></div>
+
+      <details class="opcional">
+        <summary>Onde é o serviço (opcional)</summary>
+        <div class="conteudo">
+          <div class="campo"><label for="or-endereco">Endereço</label>
+            <input type="text" id="or-endereco" placeholder="Rua, número, bairro"></div>
+          <div class="campo"><label for="or-referencia">Ponto de referência</label>
+            <input type="text" id="or-referencia" placeholder="portão azul, ao lado da padaria"></div>
+        </div>
+      </details>
+
+      <button class="btn btn-principal" id="btn-salvar-orcamento" type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: CALCULADORA ========== -->
+<div class="folha cheia" id="folha-calculadora">
+  <div class="painel-folha com-rodape">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-calculadora" type="button">‹</button>
+      <h3>Calcular o preço</h3>
+    </div>
+    <div class="aviso" id="aviso-calculadora"></div>
+
+    <div class="campo"><label for="ca-cliente">Cliente</label>
+      <select id="ca-cliente" required></select></div>
+
+    <div class="campo"><label for="ca-titulo">O que é o serviço</label>
+      <input type="text" id="ca-titulo" placeholder="Pintura da sala e do corredor" required></div>
+
+    <!-- MATERIAIS -->
+    <p class="secao-titulo">Material que você vai comprar</p>
+    <div id="ca-materiais"></div>
+    <button class="btn-add" id="ca-add-material" type="button">+ Adicionar material</button>
+
+    <!-- TRABALHO -->
+    <p class="secao-titulo">Seu trabalho</p>
+    <div class="cartao">
+      <div class="pastilhas" id="ca-unidade">
+        <button type="button" data-valor="dia" class="marcada">Por dia</button>
+        <button type="button" data-valor="hora">Por hora</button>
+      </div>
+      <div class="dupla-campo" style="margin-top:14px">
+        <div class="campo" style="margin:0"><label for="ca-qtd-trabalho">Quantos</label>
+          <input type="text" id="ca-qtd-trabalho" data-dinheiro inputmode="decimal" placeholder="3"></div>
+        <div class="campo" style="margin:0"><label for="ca-valor-trabalho" id="ca-rotulo-diaria">Valor da diária</label>
+          <input type="text" id="ca-valor-trabalho" data-dinheiro inputmode="decimal" placeholder="200,00"></div>
+      </div>
+    </div>
+
+    <!-- DESLOCAMENTO -->
+    <p class="secao-titulo">Deslocamento</p>
+    <div class="campo">
+      <input type="text" id="ca-deslocamento" data-dinheiro inputmode="decimal" placeholder="0,00">
+      <p class="dica">Gasolina, ônibus, pedágio. Deixe vazio se não tem.</p>
+    </div>
+
+    <!-- OUTROS -->
+    <p class="secao-titulo">Outros custos</p>
+    <div id="ca-outros"></div>
+    <button class="btn-add" id="ca-add-outro" type="button">+ Adicionar outro custo</button>
+
+    <!-- GANHO -->
+    <p class="secao-titulo">Quanto quer ganhar acima dos custos?</p>
+    <div class="pastilhas" id="ca-ganho">
+      <button type="button" data-valor="10">10%</button>
+      <button type="button" data-valor="20" class="marcada">20%</button>
+      <button type="button" data-valor="30">30%</button>
+      <button type="button" data-valor="outro">Outro</button>
+    </div>
+    <div class="campo" id="ca-campo-outro-ganho" style="display:none;margin-top:12px">
+      <label for="ca-ganho-outro">Quantos por cento</label>
+      <input type="text" id="ca-ganho-outro" data-dinheiro inputmode="decimal" placeholder="15">
+    </div>
+    <p class="dica" style="margin-top:10px">
+      O valor da diária já paga o seu trabalho. Isto aqui é o ganho do
+      negócio em cima disso.
+    </p>
+
+    <!-- A CONTA, ABERTA -->
+    <div class="cartao conta-aberta" id="ca-conta"></div>
+
+    <div class="campo">
+      <label for="ca-total">Valor final do orçamento</label>
+      <input type="text" id="ca-total" data-dinheiro inputmode="decimal">
+      <p class="dica">Você pode arredondar. A conta acima fica guardada do mesmo jeito.</p>
+    </div>
+
+    <div class="campo"><label for="ca-prazo">Prazo</label>
+      <input type="text" id="ca-prazo" placeholder="5 dias úteis"></div>
+
+    <div class="campo"><label for="ca-validade">Vale até</label>
+      <input type="date" id="ca-validade"></div>
+
+    <!-- barra que gruda no rodape com o subtotal ao vivo -->
+    <div class="rodape-fixo" id="ca-rodape">
+      <div>
+        <span class="rotulo">Total sugerido</span>
+        <strong id="ca-subtotal">R$ 0,00</strong>
+      </div>
+      <button class="btn btn-verde" id="btn-salvar-calculadora" type="button"
+              style="width:auto;margin:0;padding:14px 20px">Gerar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: DETALHE DO ORÇAMENTO ========== -->
+<div class="folha cheia" id="folha-ver-orcamento">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-ver-orcamento" type="button">‹</button>
+      <h3>Orçamento</h3>
+    </div>
+    <div class="aviso" id="aviso-ver-orcamento"></div>
+    <div id="conteudo-ver-orcamento"></div>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: TROCAR SENHA ========== -->
+<div class="folha cheia" id="folha-senha">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-senha" type="button">‹</button>
+      <h3>Trocar minha senha</h3>
+    </div>
+    <div class="aviso" id="aviso-senha"></div>
+    <form id="form-senha">
+      <div class="campo">
+        <label for="sn-nova">Nova senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="sn-nova" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+        <p class="dica">No mínimo 8 caracteres.</p>
+      </div>
+      <div class="campo">
+        <label for="sn-confirma">Repita a nova senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="sn-confirma" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+        <p class="dica">Se errar a senha e esquecer, só a equipe Narv consegue te ajudar.</p>
+      </div>
+      <button class="btn btn-principal" id="btn-salvar-senha" type="submit">Trocar senha</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: PERGUNTA (substitui confirm e alert) ========== -->
+<div class="folha" id="folha-pergunta">
+  <div class="painel-folha">
+    <h3 id="pg-titulo"></h3>
+    <p id="pg-texto" style="color:#5A6472;margin:0 0 22px;line-height:1.5"></p>
+    <button class="btn btn-principal" id="pg-sim">Confirmar</button>
+    <button class="btn-texto" id="pg-nao">Cancelar</button>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: VER E EDITAR UM SERVIÇO ========== -->
+<div class="folha cheia" id="folha-editar">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-editar" type="button">‹</button>
+      <h3>Serviço</h3>
+    </div>
+    <div class="aviso" id="aviso-editar"></div>
+    <form id="form-editar">
+      <div class="campo"><label for="ed-cliente">Cliente</label>
+        <select id="ed-cliente" required></select></div>
+
+      <div class="campo"><label for="ed-servico">Serviço</label>
+        <input type="text" id="ed-servico" required></div>
+
+      <div class="campo"><label for="ed-valor">Valor cobrado</label>
+        <input type="text" id="ed-valor" data-dinheiro inputmode="decimal" required></div>
+
+      <div class="dupla-campo">
+        <div class="campo"><label for="ed-data">Data</label>
+          <input type="date" id="ed-data" required></div>
+        <div class="campo" id="campo-hora-editar"><label for="ed-hora">Hora</label>
+          <input type="time" id="ed-hora"></div>
+      </div>
+
+      <div class="campo"><label>Situação</label>
+        <div class="pastilhas" id="ed-situacao">
+          <button type="button" data-valor="pago">Pago</button>
+          <button type="button" data-valor="pendente">A receber</button>
+          <button type="button" data-valor="agendado">Agendado</button>
+        </div></div>
+
+      <div class="campo"><label>Forma de pagamento</label>
+        <div class="pastilhas" id="ed-pagamento">
+          <button type="button" data-valor="Dinheiro">Dinheiro</button>
+          <button type="button" data-valor="Pix">Pix</button>
+          <button type="button" data-valor="Cartão">Cartão</button>
+          <button type="button" data-valor="Fiado">Fiado</button>
+        </div></div>
+
+      <div class="campo"><label for="ed-endereco">Endereço do serviço</label>
+        <input type="text" id="ed-endereco" placeholder="Rua, número, referência"></div>
+
+      <button class="btn btn-principal" id="btn-salvar-editar" type="submit">Salvar alterações</button>
+      <button class="btn btn-verde" id="btn-cobrar" type="button" style="display:none">Cobrar pelo WhatsApp</button>
+      <button class="btn btn-perigo" id="btn-apagar-servico" type="button">Apagar este serviço</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: CONVIDAR ALGUÉM ========== -->
+<div class="folha cheia" id="folha-convidar">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-convidar" type="button">‹</button>
+      <h3>Convidar para a equipe</h3>
+    </div>
+    <p style="color:#5A6472;margin:0 0 18px">
+      Gere um código e mande pela pessoa no WhatsApp. Ela entra em
+      "Recebi um convite da minha equipe" e digita esse código.
+    </p>
+    <div class="aviso" id="aviso-convidar"></div>
+    <div id="conteudo-convidar"></div>
+    <button class="btn btn-verde" id="btn-gerar-convite" type="button">Gerar código de convite</button>
+  </div>
+</div>
+
+
 <!-- ========== FOLHA: ENTRADA / SAÍDA ========== -->
 <div class="folha cheia" id="folha-lancamento">
   <div class="painel-folha">
@@ -313,13 +671,17 @@
       <input type="hidden" id="lc-tipo">
 
       <div class="campo"><label for="lc-valor">Valor</label>
-        <input type="number" id="lc-valor" inputmode="decimal" min="0" step="0.01" required></div>
+        <input type="text" id="lc-valor" data-dinheiro inputmode="decimal" required></div>
 
       <div class="campo"><label for="lc-data">Data</label>
         <input type="date" id="lc-data" required></div>
 
       <div class="campo"><label for="lc-categoria">Do que se trata</label>
         <input type="text" id="lc-categoria" placeholder="material, combustível, corte…"></div>
+
+      <div class="campo" id="campo-cliente-lanc"><label for="lc-cliente">Cliente (opcional)</label>
+        <select id="lc-cliente"></select>
+        <p class="dica">Vincular ao cliente faz o valor aparecer no histórico dele.</p></div>
 
       <div class="campo" id="campo-natureza"><label>Esta saída é</label>
         <div class="pastilhas" id="lc-natureza">
@@ -350,7 +712,7 @@
     <div class="aviso" id="aviso-meta"></div>
     <form id="form-meta">
       <div class="campo"><label for="mt-valor">Valor por mês</label>
-        <input type="number" id="mt-valor" inputmode="decimal" min="0" step="0.01" placeholder="2000,00"></div>
+        <input type="text" id="mt-valor" data-dinheiro inputmode="decimal" placeholder="2000,00"></div>
       <div class="campo"><label for="mt-dia">Em que dia você costuma retirar</label>
         <input type="number" id="mt-dia" inputmode="numeric" min="1" max="31" placeholder="10"></div>
       <button class="btn btn-principal" id="btn-salvar-meta" type="submit">Salvar meta</button>
@@ -374,7 +736,7 @@
           <button type="button" data-valor="extra">Retirada extra</button>
         </div></div>
       <div class="campo"><label for="rt-valor">Valor</label>
-        <input type="number" id="rt-valor" inputmode="decimal" min="0" step="0.01" required></div>
+        <input type="text" id="rt-valor" data-dinheiro inputmode="decimal" required></div>
       <div class="campo"><label for="rt-data">Data</label>
         <input type="date" id="rt-data" required></div>
       <button class="btn btn-principal" id="btn-salvar-retirada" type="submit">Salvar retirada</button>
@@ -405,7 +767,25 @@
       <span class="titulo">Foto ou logo</span>
       <span class="sub">Aparece no app e no orçamento</span></div><div class="direita">›</div></button>
 
+    <button class="item" id="aj-equipe"><div class="corpo">
+      <span class="titulo">Minha equipe</span>
+      <span class="sub" id="aj-qtd-equipe"></span></div><div class="direita">›</div></button>
+
+    <button class="item" id="aj-renda"><div class="corpo">
+      <span class="titulo">Comprovante de renda</span>
+      <span class="sub">Para alugar, financiar ou abrir MEI</span></div><div class="direita">›</div></button>
+
     <p class="secao-titulo">Conta</p>
+    <button class="item" id="aj-senha"><div class="corpo">
+      <span class="titulo">Trocar minha senha</span>
+      <span class="sub">Você precisa saber a senha de agora</span></div><div class="direita">›</div></button>
+    <button class="item" id="aj-sair-tudo"><div class="corpo">
+      <span class="titulo">Sair de todos os aparelhos</span>
+      <span class="sub">Use se perdeu ou trocou de celular</span></div><div class="direita">›</div></button>
+    <button class="item" id="aj-reportar"><div class="corpo">
+      <span class="titulo">Achei um problema no app</span>
+      <span class="sub">Fala com a equipe Narv</span></div><div class="direita">›</div></button>
+
     <button class="btn btn-secundario" id="aj-sair">Sair da conta</button>
     <button class="btn btn-perigo" id="aj-apagar">Apagar minha conta</button>
     <p class="dica" style="margin-top:10px">
@@ -435,6 +815,16 @@
       <h3>Meus serviços e preços</h3>
     </div>
     <div id="conteudo-catalogo"></div>
+
+    <form id="form-novo-servico" style="display:none;margin-top:8px">
+      <div class="campo"><label for="ns-nome">Nome do serviço</label>
+        <input type="text" id="ns-nome" placeholder="Instalação de fechadura" required></div>
+      <div class="campo"><label for="ns-preco">Quanto você cobra (opcional)</label>
+        <input type="text" id="ns-preco" data-dinheiro inputmode="decimal" placeholder="R$"></div>
+      <div class="aviso" id="aviso-novo-servico"></div>
+      <button class="btn btn-verde" id="btn-criar-servico" type="submit">Adicionar ao meu catálogo</button>
+      <button class="btn-texto" id="cancelar-novo-servico" type="button">Cancelar</button>
+    </form>
   </div>
 </div>
 
@@ -464,8 +854,12 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="app.js"></script>
-<script src="painel.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="config.js?v=5"></script>
+<script src="app.js?v=5"></script>
+<script src="painel.js?v=5"></script>
+<script src="orcamentos.js?v=5"></script>
+<script src="calculadora.js?v=5"></script>
+<script src="pdf.js?v=5"></script>
 </body>
 </html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E3F91">
+<meta name="robots" content="noindex, nofollow">
+<title>Orçamento</title>
+
+<!-- Esta página é para o CLIENTE do prestador, não para quem usa o app.
+     Ela não tem login, não tem menu e não leva a lugar nenhum: só mostra
+     o orçamento e recebe a resposta. Por isso o estilo mora aqui dentro,
+     e não no estilo.css do app. -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --azul: #1E3F91; --verde: #17593A; --vermelho: #A31208;
+    --creme: #F7EDE8; --branco: #fff; --cinza: #5A6472; --borda: #E7DCD6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--creme); color: var(--azul);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 17px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .folha { max-width: 560px; margin: 0 auto; padding: 24px 20px 40px; }
+  h1, h2 { font-family: 'Poppins', sans-serif; margin: 0; letter-spacing: -.02em; }
+
+  .topo { text-align: center; margin-bottom: 22px; }
+  .topo .quem { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 21px; }
+  .topo .oque { color: var(--cinza); font-size: 15px; margin-top: 2px; }
+
+  .cartao {
+    background: var(--branco); border: 1.5px solid var(--borda);
+    border-radius: 16px; padding: 20px; margin-bottom: 14px;
+  }
+  .rotulo { font-size: 14px; color: var(--cinza); margin: 0 0 6px; }
+  .servico { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; }
+  .descricao { margin: 12px 0 0; color: #3C4654; }
+
+  .valor {
+    font-family: 'Poppins', sans-serif; font-weight: 700;
+    font-size: 38px; color: var(--verde); line-height: 1.1;
+  }
+
+  ul.inclui { list-style: none; margin: 10px 0 0; padding: 0; }
+  ul.inclui li { padding: 7px 0; border-bottom: 1px solid var(--borda); }
+  ul.inclui li:last-child { border-bottom: none; }
+
+  .linha { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; }
+  .linha span:first-child { color: var(--cinza); }
+  .linha span:last-child { font-weight: 600; text-align: right; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 60px; padding: 16px;
+    font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 600;
+    border: none; border-radius: 15px; cursor: pointer; margin-bottom: 10px;
+  }
+  .btn-sim  { background: var(--verde); color: #fff; }
+  .btn-nao  { background: var(--branco); color: var(--vermelho);
+              border: 1.5px solid #F3C4BF; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  .recado {
+    padding: 18px; border-radius: 15px; text-align: center;
+    font-size: 17px; margin-bottom: 14px;
+  }
+  .recado.ok   { background: #E6F2EC; color: var(--verde); border: 1px solid #BFDDCE; }
+  .recado.nao  { background: #FCE9E7; color: var(--vermelho); border: 1px solid #F3C4BF; }
+  .recado.aviso{ background: #FEF8EC; color: #8A5A0B; border: 1px solid #F5DFA8; }
+
+  .rodape { text-align: center; color: var(--cinza); font-size: 13px; margin-top: 26px; }
+  .carregando { text-align: center; color: var(--cinza); padding: 60px 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cartao { animation: sobe .2s ease-out; }
+    @keyframes sobe { from { opacity: 0; transform: translateY(6px); } }
+  }
+</style>
+</head>
+<body>
+
+<div class="folha" id="tela">
+  <p class="carregando">Carregando o orçamento…</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=5"></script>
+<script src="orcamento-publico.js?v=5"></script>
+</body>
+</html>

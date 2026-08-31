@@ -37,6 +37,18 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 // Serve para não tentar criar o login duas vezes se algo falhar no meio.
 let loginJaCriado = false;
 
+// Quem está logado agora. O id do perfil é o mesmo id do login.
+//
+// Toda consulta a "perfis" PRECISA filtrar por este id. Num negócio com
+// equipe, a regra do banco deixa a pessoa ver os colegas — então a consulta
+// devolve várias linhas. Sem o filtro, quem pedia uma linha só recebia erro
+// e o app concluía "esta pessoa não tem perfil", trancando todo mundo para
+// fora, dono incluído.
+async function meuId() {
+  const { data } = await sb.auth.getUser();
+  return data?.user?.id || null;
+}
+
 let temEquipe = false;
 
 
@@ -80,6 +92,78 @@ $$('input[data-celular]').forEach(formatarCelular);
 
 
 // ------------------------------------------------------------
+// Dinheiro
+// ------------------------------------------------------------
+
+// Lê um campo de dinheiro aceitando o jeito brasileiro de escrever.
+//
+// Estes campos eram type="number". O teclado do celular oferece VÍRGULA,
+// e o navegador devolve string VAZIA quando recebe uma — então "150,50"
+// virava zero e o app salvava R$ 0,00 calado. Agora são type="text" e a
+// conversão é feita aqui.
+//
+// Devolve null quando não há número; nunca devolve zero por engano.
+function lerDinheiro(seletor) {
+  return lerDinheiroDe($(seletor));
+}
+
+// Mesma coisa, mas a partir do próprio campo — usado nas linhas de preço
+// do catálogo, que são criadas na hora e não têm id.
+function lerDinheiroDe(campo) {
+  let t = (campo?.value || '').trim();
+  if (!t) return null;
+
+  t = t.replace(/[R$\s]/gi, '');
+
+  // "1.234,56" → tira o ponto de milhar e troca a vírgula por ponto.
+  // "1234.56"  → já está pronto.
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Só deixa digitar número, vírgula e ponto nos campos de dinheiro.
+// Sem isto, letra e sinal de menos entram e viram valor errado.
+function filtrarCampoDinheiro(campo) {
+  if (!campo || campo.dataset.filtrado) return;
+  campo.dataset.filtrado = '1';
+  campo.addEventListener('input', () => {
+    const limpo = campo.value.replace(/[^\d.,]/g, '');
+    if (limpo !== campo.value) campo.value = limpo;
+  });
+}
+
+$$('input[data-dinheiro]').forEach(filtrarCampoDinheiro);
+
+// Dinheiro nunca é negativo neste app: nem preço, nem custo, nem valor
+// cobrado. Um "-" que escape do filtro viraria desconto silencioso na
+// conta da calculadora, então ele morre aqui também.
+function lerDinheiroPositivo(seletorOuCampo) {
+  const n = typeof seletorOuCampo === 'string'
+    ? lerDinheiro(seletorOuCampo)
+    : lerDinheiroDe(seletorOuCampo);
+  if (n === null) return null;
+  return n < 0 ? 0 : n;
+}
+
+// Escreve o valor no campo do jeito brasileiro, para edição.
+// Sempre com duas casas: "1920" fica estranho num campo de dinheiro,
+// e "1920,00" já mostra à pessoa o formato que o campo espera.
+function escreverDinheiro(seletor, valor) {
+  const campo = $(seletor);
+  if (!campo) return;
+
+  if (valor === null || valor === undefined || valor === '') { campo.value = ''; return; }
+
+  const n = Number(valor);
+  campo.value = Number.isFinite(n)
+    ? n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : String(valor).replace('.', ',');
+}
+
+
+// ------------------------------------------------------------
 // Tipos de atividade
 // ------------------------------------------------------------
 
@@ -89,6 +173,7 @@ const SERVICOS_SUGERIDOS = {
   'Barbeiro':            ['Corte', 'Barba', 'Corte e barba', 'Pezinho', 'Sobrancelha'],
   'Maquiador(a)':        ['Maquiagem social', 'Noiva', 'Madrinha', 'Curso'],
   'Esteticista':         ['Limpeza de pele', 'Massagem', 'Depilação', 'Drenagem'],
+  'Podólogo(a)':         ['Pé diabético', 'Unha encravada', 'Calosidade', 'Micose', 'Consulta'],
   'Diarista':            ['Diária', 'Meia diária', 'Faxina pesada', 'Passar roupa'],
   'Costureira':          ['Bainha', 'Ajuste de cintura', 'Troca de zíper', 'Peça sob medida', 'Conserto simples'],
   'Jardineiro':          ['Corte de grama', 'Poda', 'Limpeza de terreno', 'Diária'],
@@ -105,12 +190,28 @@ const SERVICOS_SUGERIDOS = {
   'Outro':               []
 };
 
+// Em ordem alfabética, com 'Outro' sempre no fim — é o último recurso,
+// não uma opção no meio da lista.
 const listaTipos = $('#c-tipo');
-Object.keys(SERVICOS_SUGERIDOS).forEach(tipo => {
-  const op = document.createElement('option');
-  op.value = tipo;
-  op.textContent = tipo;
-  listaTipos.appendChild(op);
+Object.keys(SERVICOS_SUGERIDOS)
+  .filter(t => t !== 'Outro')
+  .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  .concat('Outro')
+  .forEach(tipo => {
+    const op = document.createElement('option');
+    op.value = tipo;
+    op.textContent = tipo;
+    listaTipos.appendChild(op);
+  });
+
+// 'Outro' abre um campo para a pessoa escrever o que faz. O campo já
+// existia no HTML desde o começo, mas nada no código o usava — quem
+// escolhia 'Outro' ficava sem dizer a profissão.
+listaTipos.addEventListener('change', () => {
+  const ehOutro = listaTipos.value === 'Outro';
+  $('#campo-outra-atividade').style.display = ehOutro ? 'block' : 'none';
+  $('#c-outra-atividade').required = ehOutro;
+  if (ehOutro) $('#c-outra-atividade').focus();
 });
 
 
@@ -134,13 +235,24 @@ function aviso(id, texto, tipo = 'erro') {
 
 function limparAviso(id) { $('#' + id).className = 'aviso'; }
 
+// Deixa o botão em "Salvando…" enquanto a ação acontece.
+//
+// O `if (botao.dataset.texto)` não é detalhe: sem ele, chamar duas vezes
+// seguidas guardava "Salvando…" como se fosse o texto original, e o botão
+// ficava travado nesse texto para sempre. Acontecia em qualquer falha de
+// rede no meio de um salvamento.
 function ocupado(botao, sim, textoOcupado = 'Aguarde…') {
+  if (!botao) return;
+
   if (sim) {
-    botao.dataset.texto = botao.textContent;
+    if (!botao.dataset.texto) botao.dataset.texto = botao.textContent;
     botao.textContent = textoOcupado;
     botao.disabled = true;
   } else {
-    botao.textContent = botao.dataset.texto || botao.textContent;
+    if (botao.dataset.texto) {
+      botao.textContent = botao.dataset.texto;
+      delete botao.dataset.texto;
+    }
     botao.disabled = false;
   }
 }
@@ -283,7 +395,9 @@ $('#form-cadastro').addEventListener('submit', async (e) => {
     p_nome:              nome,
     p_celular:           $('#c-celular').value.trim(),
     p_negocio_nome:      $('#c-negocio').value.trim() || null,
-    p_tipo_atividade:    tipo,
+    p_tipo_atividade:    tipo === 'Outro'
+                           ? ($('#c-outra-atividade').value.trim() || 'Outro')
+                           : tipo,
     p_tem_equipe:        temEquipe,
     p_email_recuperacao: $('#c-email').value.trim() || null
   });
@@ -351,9 +465,13 @@ $('#form-convite').addEventListener('submit', async (e) => {
 // ------------------------------------------------------------
 
 async function depoisDeEntrar() {
+  const id = await meuId();
+  if (!id) return aviso('aviso-login', 'Sua sessão expirou. Entre de novo.');
+
   const { data: perfil } = await sb
     .from('perfis')
     .select('nome, papel, celular, negocios(nome, tipo_atividade)')
+    .eq('id', id)
     .maybeSingle();
 
   // Tem login mas o negócio não foi criado: volta para terminar o cadastro
@@ -385,4 +503,36 @@ $$('[data-ir]').forEach(el => {
 async function iniciar() {
   const { data } = await sb.auth.getSession();
   if (data.session) await depoisDeEntrar();
+}
+
+
+// ------------------------------------------------------------
+// Datas
+// ------------------------------------------------------------
+
+// Confere se a data faz sentido, e devolve o aviso a mostrar (ou null).
+//
+// O campo de data do celular deixa digitar qualquer coisa: um toque
+// errado vira 2062 ou 0026 sem ninguém perceber, e aí o serviço some
+// da lista, some do mês, e o dinheiro não bate.
+function problemaNaData(iso, opcoes = {}) {
+  if (!iso) return null;
+
+  const [ano, mes, dia] = String(iso).slice(0, 10).split('-').map(Number);
+  if (!ano || !mes || !dia) return 'Data inválida.';
+
+  const anoAgora = new Date().getFullYear();
+  if (ano < anoAgora - 5 || ano > anoAgora + 2) {
+    return 'O ano ficou ' + ano + '. Confira a data.';
+  }
+
+  const hj = hoje();
+
+  if (opcoes.naoPodeSerFutura && iso > hj) {
+    return opcoes.mensagemFutura || 'Esta data ainda não chegou.';
+  }
+  if (opcoes.naoPodeSerPassada && iso < hj) {
+    return opcoes.mensagemPassada || 'Esta data já passou.';
+  }
+  return null;
 }

@@ -2,17 +2,25 @@
    KIT NARV — Sistema visual Narv Comunidade
    ============================================================ */
 
+/* ---------- paleta da marca Narv ----------
+   Tirada do manual: o papagaio e os fundos oficiais.
+   Os tons de dinheiro (verde, laranja, vermelho) são os da marca
+   escurecidos até passarem no contraste sobre fundo claro — o
+   amarelo e o rosa da logo são lindos, mas ilegíveis como texto. */
 :root {
-  --azul:    #14357F;
-  --verde:   #0E5C3A;
-  --amarelo: #F5B731;
-  --rosa:    #EE4C8A;
-  --laranja: #F26522;
-  --creme:   #FAF8F5;
-  --branco:  #FFFFFF;
-  --cinza:   #5A6472;
-  --borda:   #E4E0D8;
-  --erro:    #B3261E;
+  --azul:       #1E3F91;   /* azul do corpo do papagaio — cor principal */
+  --azul-fundo: #0A2260;   /* azul-marinho dos fundos da marca */
+  --verde:      #17593A;   /* verde do topete — entradas */
+  --amarelo:    #F9B32B;   /* amarelo do bico e da asa */
+  --laranja:    #F5851F;   /* laranja da asa — a receber */
+  --vermelho:   #A31208;   /* saída — dinheiro que saiu do caixa */
+  --rosa:       #F09CC4;   /* rosa da bochecha — fundo e detalhe */
+  --rosa-forte: #D9569A;   /* o mesmo rosa, legível como texto */
+  --creme:      #F7EDE8;   /* creme dos fundos da marca */
+  --branco:     #FFFFFF;
+  --cinza:      #5A6472;
+  --borda:      #E7DCD6;
+  --erro:       #B3261E;
 
   --raio: 16px;
   --toque: 56px;
@@ -93,16 +101,14 @@ h2 { font-size: 22px; }
 .marca { text-align: center; margin: 40px 0 34px; }
 
 .marca .simbolo {
-  width: 84px; height: 84px;
-  margin: 0 auto 18px;
-  border-radius: 22px 22px 22px 6px;   /* quadrado assimétrico da Narv */
-  background: var(--azul);
-  color: var(--amarelo);
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 44px;
+  width: 96px; height: 96px;
+  margin: 0 auto 16px;
+  border-radius: 26px 26px 26px 8px;   /* quadrado assimétrico da Narv */
+  background: var(--creme);
   display: flex; align-items: center; justify-content: center;
+  padding: 12px;
 }
+.marca .simbolo svg { width: 100%; height: 100%; display: block; }
 
 .marca h1 { font-size: 36px; }
 .marca p { color: var(--cinza); margin: 6px 0 0; font-size: 16px; }
@@ -336,16 +342,24 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
 .cartao .valor  { font-family: 'Poppins', sans-serif; font-weight: 700;
                   font-size: 28px; margin: 0; }
 
-.destaque { background: var(--azul); border-color: var(--azul); color: var(--branco); }
-.destaque .rotulo { color: #C7D2EA; }
+/* O cartão do saldo usa o azul-marinho dos fundos da marca, não o azul
+   dos botões — assim ele se destaca sem competir com eles. */
+.destaque { background: var(--azul-fundo); border-color: var(--azul-fundo); color: var(--branco); }
+.destaque .rotulo { color: #B9C6E6; }
 .destaque .valor  { font-size: 40px; color: var(--branco); }
 
 .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .dupla .cartao { margin-bottom: 12px; }
-.dupla .valor { font-size: 22px; }
+/* Valor em cartão de meia largura: "R$ 1.200,00" não cabe em 22px numa
+   tela de 375px e quebrava em duas linhas. Encolhe junto com a tela. */
+.dupla .valor { font-size: clamp(17px, 5.1vw, 22px); white-space: nowrap; }
 
 .verde  { color: var(--verde); }
 .laranj { color: var(--laranja); }
+.verm   { color: var(--vermelho); }
+/* Detalhe que explica a linha de cima sem competir com ela. */
+.discreto { color: var(--cinza); font-weight: 500; }
+.item .corpo .titulo.sub-linha { font-weight: 500; color: var(--cinza); font-size: 15px; }
 
 /* barra de progresso da meta */
 .barra { height: 10px; background: var(--borda); border-radius: 5px; overflow: hidden; margin-top: 10px; }
@@ -390,7 +404,19 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
   align-items: center; justify-content: center; font-size: 15px;
 }
 .passos li.feito .bolinha { background: var(--verde); border-color: var(--verde); color: #fff; }
-.passos li.feito span { color: var(--cinza); text-decoration: line-through; }
+
+/* Feito fica cinza e discreto, sem risco em cima.
+   Texto riscado sobre fundo claro em tela de celular no sol fica
+   ilegível — e o visto verde já diz que está pronto. */
+.passos li.feito span { color: var(--cinza); }
+
+/* O passo que falta é o único que chama atenção */
+.passos li button {
+  background: none; border: none; padding: 0;
+  font: inherit; font-weight: 600; color: var(--azul);
+  text-align: left; cursor: pointer; text-decoration: none;
+}
+.passos li button::after { content: ' ›'; font-weight: 700; }
 
 /* barra de abas */
 .abas {
@@ -407,7 +433,11 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
   font-size: 11px; font-weight: 600; color: var(--cinza);
   display: flex; flex-direction: column; align-items: center; gap: 3px;
 }
-.abas button .ico { font-size: 20px; line-height: 1; }
+/* Ícones desenhados em SVG, não em texto. Caracteres como ☺ e ✓ viram
+   emoji colorido no iPhone e quebram a barra inteira. SVG fica igual
+   em todo aparelho e acompanha a cor da aba ativa. */
+.abas button .ico { display: block; width: 23px; height: 23px; }
+.abas button .ico svg { width: 100%; height: 100%; display: block; }
 .abas button.ativa { color: var(--azul); }
 
 /* botão + Novo */
@@ -470,8 +500,225 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
 }
 .pastilhas button.marcada { background: var(--azul); color: var(--branco); border-color: var(--azul); }
 
+/* Filtro que rola de lado em vez de quebrar linha e empurrar a lista
+   para baixo. Em tela de celular, quatro filtros não cabem numa linha só. */
+.pastilhas.rolante {
+  flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+  margin: 0 -20px 14px; padding: 2px 20px 6px;
+}
+.pastilhas.rolante::-webkit-scrollbar { display: none; }
+.pastilhas.rolante button { flex: 0 0 auto; padding: 9px 15px; font-size: 15px; }
+.pastilhas .conta {
+  display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 5px;
+  border-radius: 999px; background: var(--borda); color: var(--cinza);
+  font-size: 13px; line-height: 19px; text-align: center;
+}
+.pastilhas button.marcada .conta { background: rgba(255,255,255,.24); color: var(--branco); }
+
 .secao-titulo {
   font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15px;
   color: var(--cinza); text-transform: uppercase; letter-spacing: .04em;
   margin: 24px 0 10px;
 }
+
+/* ============================================================
+   AGENDA
+   ============================================================ */
+
+/* Dois campos lado a lado (data e hora) */
+.dupla-campo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Alternar entre Lista e Mês */
+.troca-modo {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  background: var(--borda); border-radius: 12px; padding: 4px; margin-bottom: 16px;
+}
+.troca-modo button {
+  border: none; background: none; border-radius: 9px;
+  padding: 9px; font: inherit; font-weight: 600; font-size: 15px;
+  color: var(--cinza); cursor: pointer; min-height: 40px;
+}
+.troca-modo button.marcada { background: var(--branco); color: var(--azul); }
+
+/* Cabeçalho de cada dia na lista */
+.dia-agenda {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 15px;
+  color: var(--azul);
+  margin: 20px 2px 8px; padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--borda);
+}
+.dia-agenda .total { font-family: 'Inter', sans-serif; font-size: 14px;
+                     font-weight: 500; color: var(--cinza); text-transform: none; }
+
+/* A hora fica na frente, alinhada, para o olho descer pela coluna */
+.linha-agenda .hora {
+  flex: 0 0 52px; font-weight: 700; font-size: 15px; color: var(--azul);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Calendário do mês */
+.mes-topo {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.mes-topo strong {
+  font-family: 'Poppins', sans-serif; font-size: 17px;
+  color: var(--azul);
+}
+.mes-topo button {
+  border: 1.5px solid var(--borda); background: var(--branco);
+  width: 40px; height: 40px; border-radius: 12px;
+  font-size: 22px; line-height: 1; color: var(--azul); cursor: pointer;
+}
+
+.calendario {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  margin-bottom: 8px;
+}
+.calendario .cabeca {
+  text-align: center; font-size: 12px; font-weight: 600;
+  color: var(--cinza); padding-bottom: 6px;
+}
+.calendario .dia {
+  position: relative; aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid transparent; border-radius: 11px;
+  background: var(--branco); font: inherit; font-size: 15px;
+  color: var(--azul); cursor: pointer;
+}
+.calendario .dia.tem { font-weight: 700; }
+.calendario .dia.e-hoje { border-color: var(--azul); }
+.calendario .dia.escolhido { background: var(--azul); color: var(--branco); }
+
+/* As bolinhas dizem quantos atendimentos tem no dia, sem número */
+.calendario .dia i {
+  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  display: block; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--laranja); font-size: 0;
+  box-shadow: 6px 0 0 -1px transparent, -6px 0 0 -1px transparent;
+}
+.calendario .dia i { box-shadow: none; }
+.calendario .dia i[data-n]  { }
+.calendario .dia.escolhido i { background: var(--amarelo); }
+
+/* Código do convite: fonte de largura fixa para não confundir 0 com O */
+.codigo {
+  font-family: 'Courier New', monospace; font-size: 19px;
+  letter-spacing: 2px; font-weight: 700;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .troca-modo button, .calendario .dia { transition: background .15s, color .15s; }
+}
+
+/* ============================================================
+   ORÇAMENTOS
+   ============================================================ */
+
+/* Etiquetas de status. Cinza = parado, azul = andando,
+   verde = fechou, vermelho = não fechou. */
+.et-rascunho { background: #EFEAE6; color: var(--cinza); }
+.et-enviado  { background: #E8EDF8; color: var(--azul); }
+.et-pensando { background: #FDF2E0; color: #8A5A0B; }
+.et-recusado { background: #FCE9E7; color: var(--vermelho); }
+.et-vencido  { background: #EFEAE6; color: #8A6A5A; }
+
+/* O lembrete de orçamento parado precisa puxar o olho sem assustar */
+.cartao.lembrete { border-color: var(--amarelo); background: #FEF8EC; }
+.cartao.lembrete p { font-size: 16px; }
+
+/* Opção grande da folha de escolha do tipo */
+.acao.alta { align-items: flex-start; padding: 18px 16px; }
+.acao.alta .texto { display: block; text-align: left; }
+.acao.alta strong { display: block; font-family: 'Poppins', sans-serif; font-size: 17px; }
+.acao.alta small { color: var(--cinza); font-size: 14px; line-height: 1.35; display: block; }
+
+.campo textarea { resize: vertical; min-height: 96px; line-height: 1.45; }
+
+/* ---------- calculadora ---------- */
+
+.linha-item {
+  display: grid; grid-template-columns: 1fr 58px 92px 40px;
+  gap: 6px; margin-bottom: 8px; align-items: center;
+}
+.linha-item input {
+  min-height: 48px; padding: 10px 12px;
+  border: 1.5px solid var(--borda); border-radius: 11px;
+  font-family: inherit; font-size: 16px; color: var(--azul);
+  background: var(--branco); width: 100%; outline: none;
+}
+.linha-item input:focus { border-color: var(--azul); }
+.linha-item .qtd, .linha-item .unit { text-align: right; }
+.linha-item .tirar {
+  min-height: 48px; border: none; background: none;
+  color: var(--cinza); font-size: 24px; cursor: pointer; padding: 0;
+}
+
+.btn-add {
+  width: 100%; min-height: 48px; margin-bottom: 8px;
+  border: 1.5px dashed var(--borda); border-radius: 12px;
+  background: none; color: var(--azul);
+  font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+
+/* A conta aberta, para ela ver de onde veio o número */
+.conta-aberta { margin-top: 18px; }
+.linha-conta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--borda);
+  font-size: 16px;
+}
+.linha-conta:last-child { border-bottom: none; }
+.linha-conta small { display: block; font-size: 13px; color: var(--cinza); font-weight: 400; }
+.linha-conta.soma { font-weight: 600; border-top: 1.5px solid var(--borda); }
+.linha-conta.total {
+  font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px;
+  color: var(--verde); border-top: 2px solid var(--borda); padding-top: 12px;
+}
+
+/* Barra fixa no rodapé com o subtotal ao vivo */
+/* A barra gruda no fim da folha enquanto ela rola. Fica DENTRO do
+   painel: a .folha e flex, entao um irmao viraria coluna ao lado. */
+.painel-folha.com-rodape { padding-bottom: 0; }
+.rodape-fixo {
+  position: sticky; bottom: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 18px -20px 0;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  background: var(--branco); border-top: 1.5px solid var(--borda);
+}
+.rodape-fixo .rotulo { display: block; font-size: 13px; color: var(--cinza); }
+.rodape-fixo strong {
+  font-family: 'Poppins', sans-serif; font-size: 22px; color: var(--verde);
+}
+
+/* Linha de orçamento: o corpo abre o detalhe, a etiqueta troca o status */
+.linha-orcamento { align-items: stretch; }
+.linha-orcamento .corpo {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--azul); text-align: left; cursor: pointer;
+}
+.linha-orcamento .direita {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 8px; justify-content: center;
+}
+.linha-orcamento .dinheiro { font-weight: 600; white-space: nowrap; }
+
+/* A etiqueta que se toca. A seta diz que ela faz alguma coisa. */
+.etiqueta.toque {
+  border: none; font-family: inherit; cursor: pointer;
+  font-size: 13px; font-weight: 600; padding: 7px 11px;
+  min-height: 34px; white-space: nowrap;
+}
+.etiqueta.toque::after { content: ' ⌄'; opacity: .65; }
+
+/* As seis opções, cada uma na cor dela */
+.grade-status {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px;
+}
+.escolha-status {
+  min-height: var(--toque); border: 1.5px solid transparent; border-radius: 13px;
+  font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.escolha-status.atual { border-color: var(--azul); }
