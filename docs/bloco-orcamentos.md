@@ -109,6 +109,34 @@ Cuidados tomados:
 - Gerar o link duas vezes devolve o mesmo código, para não invalidar
   o que ela já mandou
 
+## Fluxo do link testado de ponta a ponta — 31/08/2026
+
+Criado orçamento, gerado o link, aberto SEM LOGIN (sessão limpa),
+aprovado pelo cliente e conferido no app da prestadora. O status virou
+aprovado sozinho, com data e hora da resposta gravadas.
+
+Testes de tentativa de burla, todos barrados:
+
+| Tentativa | Resultado |
+|---|---|
+| Responder duas vezes | devolve ja_respondido, status não muda |
+| Resposta inventada (pago) | recusada |
+| Código adivinhado | não devolve nada |
+| Código curto (força bruta) | não devolve nada |
+| Gerar o link de novo | mesmo código, não invalida o que ela mandou |
+| Ler qualquer tabela sem login | 42501 em todas |
+
+**Um achado do teste virou a migração 11.** Funções internas
+(`listar_atendimentos`, `minha_meta`, `meus_totais`) podiam ser
+**chamadas** por quem não tem login — o Postgres concede EXECUTE a
+PUBLIC por padrão em toda função nova, e o `grant ... to authenticated`
+das migrações anteriores não tirava isso.
+
+Nada vazou, porque todas filtram por `auth.uid()`, que é nulo sem
+login. Mas `meus_totais` devolvia `{"a_receber": 0}` em vez de nada:
+`null <> 'dono'` não é verdadeiro nem falso em SQL, é NULO, e o CASE
+caía no ELSE. A 11 revoga de PUBLIC e corrige a checagem.
+
 ## Decisão sobre o PDF — 31/08/2026
 
 A primeira versão listava quantidade, valor unitário e total de cada
