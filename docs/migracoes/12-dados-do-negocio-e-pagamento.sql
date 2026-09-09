@@ -98,16 +98,49 @@ grant update (
 
 
 -- 4. `listar_orcamentos` precisa devolver os campos novos.
---    Sem isto, a lista do app não enxerga forma de pagamento.
+--    Sem isto, a lista do app não enxerga a forma de pagamento.
+--
+-- ATENÇÃO AO TIPO DE RETORNO — foi onde a primeira versão quebrou.
+--
+-- Esta função já existe devolvendo `setof json`, e a primeira versão
+-- desta migração tentava recriá-la como `setof public.orcamentos`.
+-- O Postgres recusa: `create or replace` não muda tipo de retorno.
+--   ERROR 42P13: cannot change return type of existing function
+--
+-- A correção não é dropar a função — é não mudar o tipo. Mantemos
+-- `setof json` e só acrescentamos os dois campos novos.
+--
+-- O `valor` continua escondido de quem não é dono, como na migração 08.
 create or replace function public.listar_orcamentos(p_limite integer default 200)
-returns setof public.orcamentos
+returns setof json
 language sql
 security definer
 stable
 set search_path = public
 as $$
-  select o.* from public.orcamentos o
-   where o.negocio_id = (select negocio_id from public.perfis where id = auth.uid())
+  select json_build_object(
+           'id',              o.id,
+           'negocio_id',      o.negocio_id,
+           'cliente_id',      o.cliente_id,
+           'atendimento_id',  o.atendimento_id,
+           'origem',          o.origem,
+           'titulo',          o.titulo,
+           'descricao',       o.descricao,
+           'prazo',           o.prazo,
+           'validade',        o.validade,
+           'status',          o.status,
+           'enviado_em',      o.enviado_em,
+           'endereco',        o.endereco,
+           'referencia',      o.referencia,
+           'criado_em',       o.criado_em,
+           'forma_pagamento', o.forma_pagamento,
+           'parcelas',        o.parcelas,
+           'valor',           case when eu.papel = 'dono' then o.valor else null end,
+           'pode_ver_valor',  (eu.papel = 'dono')
+         )
+    from public.orcamentos o
+    join public.perfis eu on eu.id = auth.uid()
+   where o.negocio_id = eu.negocio_id
    order by o.criado_em desc
    limit greatest(1, least(coalesce(p_limite, 200), 500));
 $$;
@@ -116,7 +149,51 @@ revoke execute on function public.listar_orcamentos(integer) from public, anon;
 grant  execute on function public.listar_orcamentos(integer) to authenticated;
 
 
--- 4. O cliente também precisa ver como pode pagar, na página do link.
+-- 4b. `listar_atendimentos` idem: ganha `parcelas`, mantendo o tipo.
+create or replace function public.listar_atendimentos(p_limite integer default 200)
+returns setof json
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select json_build_object(
+           'id',              a.id,
+           'negocio_id',      a.negocio_id,
+           'cliente_id',      a.cliente_id,
+           'servico_id',      a.servico_id,
+           'profissional_id', a.profissional_id,
+           'criado_por',      a.criado_por,
+           'tipo',            a.tipo,
+           'servico_nome',    a.servico_nome,
+           'titulo',          a.titulo,
+           'descricao',       a.descricao,
+           'data',            a.data,
+           'hora',            a.hora,
+           'endereco',        a.endereco,
+           'referencia',      a.referencia,
+           'forma_pagamento', a.forma_pagamento,
+           'parcelas',        a.parcelas,
+           'situacao',        a.situacao,
+           'observacao',      a.observacao,
+           'criado_em',       a.criado_em,
+           'clientes',        json_build_object('nome', c.nome),
+           'valor',           case when eu.papel = 'dono' then a.valor else null end,
+           'pode_ver_valor',  (eu.papel = 'dono')
+         )
+    from public.atendimentos a
+    join public.perfis eu on eu.id = auth.uid()
+    left join public.clientes c on c.id = a.cliente_id
+   where a.negocio_id = eu.negocio_id
+   order by a.data desc, a.criado_em desc
+   limit greatest(1, least(coalesce(p_limite, 200), 500));
+$$;
+
+revoke execute on function public.listar_atendimentos(integer) from public, anon;
+grant  execute on function public.listar_atendimentos(integer) to authenticated;
+
+
+-- 5. O cliente também precisa ver como pode pagar, na página do link.
 create or replace function public.ver_orcamento_publico(p_token text)
 returns json
 language sql
