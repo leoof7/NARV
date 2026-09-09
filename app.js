@@ -647,3 +647,20 @@ window.addEventListener('online', () => {
     recarregar().catch(() => {});
   }
 });
+
+
+// ------------------------------------------------------------
+// Faixa de ambiente
+//
+// Fora de produção, o app avisa na cara. Sem isso é fácil registrar
+// um serviço de teste no banco de verdade — ou pior, achar que
+// apagou algo de teste e ter apagado dado de participante.
+// ------------------------------------------------------------
+
+if (!CONFIG.EH_PRODUCAO) {
+  const faixa = document.createElement('div');
+  faixa.className = 'faixa-ambiente';
+  faixa.textContent = 'Banco de ' + CONFIG.AMBIENTE_NOME + ' — não é dado real';
+  document.body.appendChild(faixa);
+  document.body.classList.add('tem-faixa');
+}

@@ -747,3 +747,22 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
   .barra-trilho i { animation: cresce .4s ease-out; }
   @keyframes cresce { from { width: 0 !important; } }
 }
+
+/* ---------- faixa de ambiente ----------
+   Só aparece fora de produção. Existe para ninguém confundir a tela
+   de teste com a de verdade — e para quem estiver olhando por cima
+   do ombro saber na hora onde está pisando. */
+
+.faixa-ambiente {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: repeating-linear-gradient(45deg,
+    #F9B32B 0 12px, #14203A 12px 24px);
+  color: #fff; text-align: center;
+  font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 5px 10px;
+  text-shadow: 0 1px 3px rgba(0,0,0,.9);
+  pointer-events: none;
+}
+
+body.tem-faixa { padding-top: 26px; }

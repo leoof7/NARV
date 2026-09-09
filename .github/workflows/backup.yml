@@ -1,0 +1,72 @@
+# ============================================================
+# NARV — Backup automático do banco
+#
+# POR QUE ISTO EXISTE
+#
+# O plano Free do Supabase não faz backup nenhum. Até aqui o backup
+# dependia do Leandro lembrar de rodar o script no computador dele —
+# e backup que depende de alguém lembrar não é backup.
+#
+# COMO FUNCIONA
+#
+# O GitHub roda este trabalho todo dia às 6h da manhã (horário de
+# Brasília), baixa os dados e guarda como "artifact" — um arquivo
+# privado, que só quem tem acesso ao repositório enxerga.
+#
+# IMPORTANTE: o backup NUNCA é gravado no repositório. Ele tem dados
+# dos participantes, e o repositório é público.
+#
+# O QUE PRECISA ESTAR CONFIGURADO
+#
+# Um segredo chamado SUPABASE_SECRET_KEY, em:
+#   github.com/leoof7/NARV > Settings > Secrets and variables >
+#   Actions > New repository secret
+#
+# Segredo do GitHub é privado mesmo em repositório público, e não
+# aparece no log — o GitHub apaga o valor da saída automaticamente.
+# ============================================================
+
+name: Backup do banco
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 em Brasília
+    - cron: '0 9 * * *'
+  # Permite rodar na hora, pelo botão, sem esperar o horário
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pegar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Baixar os dados
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: node backup.mjs
+
+      - name: Conferir se veio alguma coisa
+        run: |
+          if [ ! -d backups ] || [ -z "$(ls -A backups)" ]; then
+            echo "A pasta de backup está vazia. Isto NÃO é um backup."
+            exit 1
+          fi
+          echo "Arquivos gerados:"
+          ls -la backups/
+
+      - name: Guardar o backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-narv-${{ github.run_number }}
+          path: backups/
+          # 90 dias é o teto do plano grátis do GitHub
+          retention-days: 90
+          if-no-files-found: error
