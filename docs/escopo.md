@@ -220,6 +220,42 @@ Tudo testado no navegador, contra o banco real.
 
 ---
 
+## A estrutura do banco tem cópia — 09/09/2026
+
+`docs/estrutura-do-banco.json` guarda tudo que existe dentro do banco:
+140 colunas, 38 índices, 63 restrições, 35 políticas de segurança, 3
+gatilhos, os 2 baldes de arquivo e o **código completo das 15 funções** —
+inclusive `criar_conta`, `aceitar_convite` e `apagar_minha_conta`, que
+foram escritas no chat anterior e não existiam em arquivo nenhum.
+
+Com isso o projeto passa a ter cópia de tudo:
+
+| O quê | Onde fica |
+|---|---|
+| Estrutura do banco | `docs/estrutura-do-banco.json` |
+| Dados | `backup.ps1`, ou o backup pelo navegador |
+| Migrações 05 a 12 | `docs/migracoes/` |
+| App | GitHub |
+
+**Refazer a exportação depois de cada migração nova.** O arquivo é uma
+foto do banco: fica velho assim que algo muda.
+
+### O que a exportação revelou
+
+**Todas as 15 tabelas têm RLS ligada e política definida.** Nenhuma
+exposta.
+
+**Quatro tabelas existem e o app não usa:** `checklists`,
+`checklist_itens`, `atendimento_checklist` e `historico_precos`. Foram
+criadas nas migrações 01 a 04 para um escopo maior que não chegou a ser
+construído. Não atrapalham — só ocupam espaço e confundem quem for ler o
+banco depois. Decidir em algum momento: usar ou remover.
+
+Há também uma função `exportar_meus_dados` que nenhuma tela chama. Pode
+virar o botão de "baixar meus dados" que a LGPD pede.
+
+---
+
 ## Decisões de arquitetura (ADR)
 
 ### ADR-001 — Arquivos soltos em vez de Next.js
