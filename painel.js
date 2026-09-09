@@ -2195,16 +2195,21 @@ function mostrarValorDaParcela(seletorDica, valor, parcelas) {
   el.textContent = n + ' parcelas de ' + moeda(valor / n);
 }
 
-function atualizarParcelasServico() {
-  const forma = valorPastilha('#sv-pagamento');
+// Mesmo cuidado do orcamento: o clique no botao vem antes da marcacao.
+function atualizarParcelasServico(formaClicada) {
+  const forma = formaClicada !== undefined ? formaClicada : valorPastilha('#sv-pagamento');
   const mostra = pagamentoParcelavel(forma) && estado.temParcelas;
   $('#campo-parcelas').style.display = mostra ? 'block' : 'none';
   if (mostra) mostrarValorDaParcela('#sv-parcela-valor', lerDinheiro('#sv-valor'), $('#sv-parcelas').value);
 }
 
-$$('#sv-pagamento button').forEach(b => b.addEventListener('click', atualizarParcelasServico));
-$('#sv-parcelas')?.addEventListener('change', atualizarParcelasServico);
-$('#sv-valor')?.addEventListener('input', atualizarParcelasServico);
+$$('#sv-pagamento button').forEach(b =>
+  b.addEventListener('click', () => atualizarParcelasServico(b.dataset.valor)));
+// Envolvido numa arrow de proposito: passar a funcao direto faz o
+// navegador mandar o EVENTO como primeiro argumento — que aqui seria
+// lido como 'forma de pagamento' e escondia o campo sem motivo.
+$('#sv-parcelas')?.addEventListener('change', () => atualizarParcelasServico());
+$('#sv-valor')?.addEventListener('input',  () => atualizarParcelasServico());
 
 
 // ------------------------------------------------------------

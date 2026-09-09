@@ -46,14 +46,7 @@ async function vencerOsVencidos() {
 // Lista
 // ------------------------------------------------------------
 
-// A coluna 'parcelas' so existe depois da migracao 12.
-function detectarParcelasOrc() {
-  const o = (estado.orcamentos || [])[0];
-  estado.temParcelasOrc = o ? ('parcelas' in o) : estado.temParcelas;
-}
-
 function desenharOrcamentos() {
-  detectarParcelasOrc();
   const lista = estado.orcamentos || [];
 
   if (!lista.length) {
@@ -196,6 +189,9 @@ function abrirFormOrcamento(orc) {
     $('#or-validade').value = dataLocal(d);
   }
 
+  // Acerta o campo de parcelas JA AO ABRIR. Antes ele so aparecia
+  // depois de mexer no select — quem escolhia Cartao e salvava direto
+  // nunca via em quantas vezes ia parcelar.
   marcarPastilha('#or-pagamento', orc ? (orc.forma_pagamento || '') : '');
   encherParcelas('#or-parcelas', orc ? (orc.parcelas || 1) : 1);
   atualizarParcelasOrcamento();
@@ -229,7 +225,7 @@ $('#form-orcamento').addEventListener('submit', async (e) => {
     referencia: $('#or-referencia').value.trim() || null
   };
 
-  if (estado.temParcelasOrc) {
+  if (estado.temParcelas) {
     const forma = valorPastilha('#or-pagamento');
     dados.forma_pagamento = forma || null;
     dados.parcelas = pagamentoParcelavel(forma) ? (Number($('#or-parcelas').value) || 1) : null;
@@ -683,18 +679,24 @@ async function mandarLinkDeAprovacao(o, c) {
 // Forma de pagamento no orçamento
 // ------------------------------------------------------------
 
-function atualizarParcelasOrcamento() {
-  const forma = valorPastilha('#or-pagamento');
-  const mostra = pagamentoParcelavel(forma) && estado.temParcelasOrc;
+//  existe porque o clique no BOTAO roda antes de o grupo
+// marcar a pastilha — ler valorPastilha() aqui devolveria a escolha
+// ANTERIOR, e o campo de parcelas aparecia trocado: sumia no Cartao e
+// aparecia no Pix. Quando vem do clique, usamos o valor do proprio botao.
+function atualizarParcelasOrcamento(formaClicada) {
+  const forma = formaClicada !== undefined ? formaClicada : valorPastilha('#or-pagamento');
+  const mostra = pagamentoParcelavel(forma) && estado.temParcelas;
   $('#campo-or-parcelas').style.display = mostra ? 'block' : 'none';
   if (mostra) {
     mostrarValorDaParcela('#or-parcela-valor', lerDinheiro('#or-valor'), $('#or-parcelas').value);
   }
 }
 
-$$('#or-pagamento button').forEach(b => b.addEventListener('click', atualizarParcelasOrcamento));
-$('#or-parcelas')?.addEventListener('change', atualizarParcelasOrcamento);
-$('#or-valor')?.addEventListener('input', atualizarParcelasOrcamento);
+$$('#or-pagamento button').forEach(b =>
+  b.addEventListener('click', () => atualizarParcelasOrcamento(b.dataset.valor)));
+// Mesmo cuidado do servico: sem a arrow, o evento vira o argumento.
+$('#or-parcelas')?.addEventListener('change', () => atualizarParcelasOrcamento());
+$('#or-valor')?.addEventListener('input',  () => atualizarParcelasOrcamento());
 
 // Como o cliente pode pagar, em uma linha, para reaproveitar em toda
 // parte que mostra isso: detalhe, PDF, WhatsApp e página do cliente.
