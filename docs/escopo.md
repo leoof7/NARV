@@ -1,6 +1,6 @@
 # NARV — Escopo
 
-Última atualização: 31/08/2026
+Última atualização: 08/09/2026
 
 Este documento é a fonte da verdade sobre o que o NARV é e o que ele não é.
 Ideia nova não entra no meio de uma sessão — vira item de "Próxima fase"
@@ -136,17 +136,24 @@ tem 5–8 MB e o limite grátis é 1 GB no total).
 
 ## Próxima fase — congelado, não entra agora
 
-- **Orçamentos** — orçamento rápido, calculadora de "quanto quer ganhar
-  acima dos custos", PDF e envio pelo WhatsApp. A aba já existe vazia.
-- **Gráfico de gastos por categoria** — pedido em 30/08. Depende da
-  categoria virar lista, que foi puxada para o bloco atual justamente para o
-  dado nascer limpo.
+- **Relatório mensal para imprimir ou mandar** — diferente do comprovante
+  de renda, que já existe: seria o detalhe do mês, serviço a serviço.
+- **"Esqueci minha senha" por e-mail** — esbarra no login por celular: o
+  e-mail do Supabase é fabricado. Precisa de desenho e de um serviço de
+  envio (o Resend tem 3.000/mês de graça).
+- **Editar o próprio perfil** — nome e celular de quem usa.
 - **Recorrência** — "repetir este atendimento em 15 dias". Hoje o botão
   "Repetir serviço" no perfil do cliente cobre o caso em dois toques.
-- **Banco de homologação** — a partir do que estiver em produção. O Leandro
-  avisa o dia.
-- Editar e arquivar cliente.
-- Relatório mensal para imprimir ou mandar.
+- **Funcionar sem internet** — decisão adiada de propósito em 31/08:
+  esperar aparecer nos relatos do piloto antes de pagar o custo.
+- **Assinatura com valor jurídico** no orçamento — exigiria Clicksign ou
+  D4Sign, que são pagos. O aceite por link já está no ar.
+- **Banco de homologação** — a partir do que estiver em produção. O
+  Leandro avisa o dia.
+- **Lixeira / desfazer** — avaliado em 31/08 e descartado: o banco impede
+  apagar cliente com histórico, apagar serviço não leva o dinheiro junto,
+  e o único cadastro trabalhoso (orçamento da calculadora) tem
+  "Duplicar".
 
 ---
 
@@ -173,6 +180,43 @@ tudo a cada ação".
 
 **Armadilha do Free:** projeto sem acesso por 7 dias é pausado. Se o piloto
 ficar uma semana parado, ninguém entra até despausar.
+
+---
+
+## Bloco entregue em 08/09/2026
+
+Tudo testado no navegador, contra o banco real.
+
+### Corrigido
+
+| O quê | Como apareceu |
+|---|---|
+| **O resumo do mês não fechava.** Entradas R$ 1.000, saídas R$ 0 e saldo R$ 820 na mesma tela. As linhas eram do mês; o saldo, de todos os tempos. | Reproduzido com uma saída no mês anterior |
+| **A migração 07 não protegia nada.** A equipe ainda lia a meta do dono, direto e pelo embed do PostgREST. | Testado com conta de profissional |
+| **Campo de hora nunca aparecia em conta nova.** A detecção olhava a primeira linha de atendimentos, e quem acabou de se cadastrar não tem nenhuma. | Cadastro do zero |
+| **O gráfico jogava tudo em "Sem categoria".** A consulta dos totais não trazia a coluna `categoria`. | Três saídas de tipos diferentes |
+| **O app afirmava que gasto pessoal não muda o saldo** — falso desde o ADR-004. | Leitura da tela |
+| **A mensagem de erro mandava "ir em Ajustes"** sem dizer onde fica. | Apontado pelo Leandro |
+
+### Novo
+
+- **Dados do negócio** — CNPJ, site, Instagram, endereço e e-mail, com
+  máscara de CNPJ e limpeza automática do @ do Instagram
+- **PDF redesenhado** — faixa azul com o CNPJ de quem cobra, bloco verde
+  com o valor e a forma de pagamento, rodapé com Instagram e site
+- **Forma de pagamento e parcelas** — no serviço e no orçamento, com o
+  valor de cada parcela calculado na tela
+- **Editar a conta da calculadora** — orçamento já criado volta com os
+  itens; ela acrescenta e salva sem duplicar
+- **Categoria vira lista** — por profissão, com "Outro" para o resto
+- **Gráfico de gastos** — barras horizontais, três meses, com a frase que
+  aponta onde dá para economizar
+- **Confirmação de senha** no cadastro e no convite
+- **Rede de segurança** — erro não previsto vira aviso em português,
+  destrava os botões presos em "Salvando…" e oferece um botão que abre o
+  WhatsApp da equipe já com o contexto
+
+**Depende do Leandro:** rodar a migração 12.
 
 ---
 
@@ -242,3 +286,42 @@ cinco ícones; a sexta aba começaria a espremer os rótulos em celular pequeno.
 própria. Se o uso mostrar que ela é a tela mais aberta do dia, vira aba.
 **Depende de:** migração 06, que adiciona a coluna `hora`. O app funciona sem
 ela — esconde o campo de hora e mostra "—" na lista.
+
+### ADR-007 — Esconder coluna exige tirar o acesso à tabela inteira
+**Quando:** 08/09/2026
+**Decisão:** para esconder uma coluna, sempre `revoke select on tabela`
+seguido de `grant select (colunas permitidas)`. Nunca
+`revoke select (coluna)` sozinho.
+**Por quê:** no Postgres, o `grant` de tabela inteira vence o `revoke` de
+coluna, e o revoke é ignorado **em silêncio**. A migração 07 pareceu ter
+funcionado e não protegia nada: a equipe continuou lendo a meta do dono por
+mais de uma semana, direto e pelo embed do PostgREST. A migração 08 usou a
+mesma sintaxe e funcionou — só porque naquela tabela o grant amplo já não
+existia. Mesma linha de SQL, resultados opostos.
+**Custo aceito:** toda coluna nova precisa entrar no `grant`, senão some
+para o app. É um custo bom: erra para o lado seguro.
+**Como verificar:** entrar como profissional e tentar ler a coluna. Ler o
+SQL não basta — a sintaxe errada parece certa.
+
+### ADR-008 — Detecção de migração pergunta pela coluna, não pelo dado
+**Quando:** 08/09/2026
+**Decisão:** para saber se uma migração já rodou, pedir a coluna ao banco
+(`select('hora').limit(1)`) e olhar se deu erro. Nunca inspecionar a
+primeira linha de dado.
+**Por quê:** conta nova não tem dado nenhum. A detecção pelo dado concluía
+"a coluna não existe" para exatamente quem estava começando, e o campo de
+hora nunca aparecia para essa pessoa.
+**Custo aceito:** uma consulta a mais por carregamento, com peso
+desprezível.
+
+### ADR-009 — Aviso de erro oferece caminho, não instrução
+**Quando:** 08/09/2026
+**Decisão:** quando algo falha, o aviso traz um botão que resolve — no
+caso do erro, abrir o WhatsApp da equipe já com a tela, o perfil, a hora e
+o detalhe técnico preenchidos. Não se escreve "vá em Ajustes e procure".
+**Por quê:** mandar a pessoa procurar uma tela é devolver o problema para
+ela, no momento em que ela já está travada. E o relato que chega sem
+contexto obriga a equipe a adivinhar o que aconteceu.
+**Custo aceito:** a folha de aviso ficou com um botão a mais para
+gerenciar, e `avisarNaFolha` precisa esconder o "Cancelar" que só faz
+sentido em pergunta.

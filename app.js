@@ -369,6 +369,15 @@ $('#form-cadastro').addEventListener('submit', async (e) => {
   const numero = limparCelular($('#c-celular').value);
   if (!numero) return aviso('aviso-cadastro', 'Digite o celular com DDD. Exemplo: (31) 98842-7315');
 
+  // Confirmação de senha NÃO é luxo aqui: a recuperação é humana, pelo
+  // WhatsApp da equipe. Quem erra a senha no cadastro e esquece qual
+  // digitou perde a conta.
+  if (!loginJaCriado) {
+    const s1 = $('#c-senha').value, s2 = $('#c-senha2').value;
+    if (s1.length < 8) return aviso('aviso-cadastro', 'A senha precisa ter pelo menos 8 caracteres.');
+    if (s1 !== s2) return aviso('aviso-cadastro', 'As duas senhas não estão iguais. Confira e tente de novo.');
+  }
+
   const botao = $('#btn-cadastro');
   ocupado(botao, true, 'Criando sua conta…');
 
@@ -433,6 +442,10 @@ $('#form-convite').addEventListener('submit', async (e) => {
   const numero = limparCelular($('#v-celular').value);
   if (!numero) return aviso('aviso-convite', 'Digite o celular com DDD.');
 
+  const s1 = $('#v-senha').value, s2 = $('#v-senha2').value;
+  if (s1.length < 8) return aviso('aviso-convite', 'A senha precisa ter pelo menos 8 caracteres.');
+  if (s1 !== s2) return aviso('aviso-convite', 'As duas senhas não estão iguais. Confira e tente de novo.');
+
   const botao = $('#btn-convite');
   ocupado(botao, true, 'Entrando…');
 
@@ -478,6 +491,8 @@ async function depoisDeEntrar() {
   if (!perfil) {
     loginJaCriado = true;
     $('#campo-senha').style.display = 'none';
+    $('#campo-senha2').style.display = 'none';
+    $('#c-senha2').removeAttribute('required');
     $('#c-senha').removeAttribute('required');
     $('#titulo-cadastro').textContent = 'Falta pouco';
     aviso('aviso-cadastro', 'Seu login já existe. Confirme os dados do negócio para terminar.', 'ok');
@@ -536,3 +551,99 @@ function problemaNaData(iso, opcoes = {}) {
   }
   return null;
 }
+
+
+// ------------------------------------------------------------
+// Rede de segurança
+//
+// Antes, qualquer erro não previsto — queda de internet no meio de um
+// salvamento, resposta estranha do servidor — travava a tela em
+// silêncio, com o botão preso em "Salvando…" para sempre.
+//
+// Em vez de espalhar try/catch por cima de cada função, o app escuta
+// os erros que escaparam. Isso pega inclusive o que ninguém previu,
+// que é justamente o caso perigoso.
+// ------------------------------------------------------------
+
+// Destrava todo botão que ficou preso, para a pessoa poder tentar de novo.
+function destravarBotoes() {
+  $$('button[data-texto]').forEach(b => {
+    b.textContent = b.dataset.texto;
+    delete b.dataset.texto;
+    b.disabled = false;
+  });
+  $$('button:disabled').forEach(b => { b.disabled = false; });
+}
+
+function avisarFalha(erro) {
+  console.error('Kit Narv — erro não tratado:', erro);
+  destravarBotoes();
+
+  const msg = String(erro?.message || erro || '');
+  const semRede = /fetch|network|failed to fetch|load failed/i.test(msg);
+
+  const titulo = semRede ? 'Sem conexão' : 'Algo deu errado';
+  const texto  = semRede
+    ? 'Não consegui falar com o servidor. Confira sua internet e tente de novo — ' +
+      'o que você digitou continua aí na tela.'
+    : 'Tente de novo. Se continuar assim, toque no botão abaixo para ' +
+      'avisar a equipe Narv — eu já mando junto o que estava acontecendo.';
+
+  // Usa a folha do app quando ela existe; senão, o aviso simples.
+  if (typeof avisarNaFolha === 'function' && document.getElementById('folha-pergunta')) {
+    // Mandar a pessoa "ir em Ajustes" é devolver o problema para ela.
+    // O botão leva direto ao WhatsApp da equipe, e leva junto o que
+    // aconteceu — assim ninguém precisa adivinhar depois.
+    const acao = semRede ? null : {
+      rotulo: 'Avisar a equipe Narv',
+      fazer: () => falarComAEquipe(msg)
+    };
+    avisarNaFolha(titulo, texto, acao);
+  } else {
+    alert(titulo + '\n\n' + texto);
+  }
+}
+
+// Abre o WhatsApp da equipe com o contexto já preenchido.
+// Serve para o botão do erro e para o item de Ajustes — um lugar só,
+// para as duas mensagens nunca ficarem diferentes.
+function falarComAEquipe(detalheTecnico) {
+  const aba = document.querySelector('.abas button.ativa')?.textContent?.trim() || 'Início';
+
+  let texto = 'Oi, equipe Narv! Achei um problema no app.\n\n' +
+              'O que aconteceu: (conte aqui)\n\n' +
+              '--- para a equipe ---\n' +
+              'Tela: ' + aba + '\n';
+
+  if (typeof estado !== 'undefined') {
+    texto += 'Perfil: ' + (estado.perfil?.papel || '?') + '\n' +
+             'Atividade: ' + (estado.negocio?.tipo_atividade || '?') + '\n';
+  }
+  texto += 'Quando: ' + new Date().toLocaleString('pt-BR') + '\n';
+  if (detalheTecnico) texto += 'Detalhe: ' + String(detalheTecnico).slice(0, 200) + '\n';
+
+  window.open('https://wa.me/5531971589587?text=' + encodeURIComponent(texto),
+              '_blank', 'noopener');
+}
+
+// Promessa que falhou e ninguém pegou — é o caso mais comum aqui,
+// porque quase tudo no app é uma chamada ao Supabase.
+window.addEventListener('unhandledrejection', (e) => {
+  e.preventDefault();
+  avisarFalha(e.reason);
+});
+
+// Erro de código de verdade. Não mostra para a pessoa quando vem de
+// script de fora (CDN), porque aí ela não tem o que fazer.
+window.addEventListener('error', (e) => {
+  if (e.filename && !e.filename.includes(location.host)) return;
+  avisarFalha(e.error || e.message);
+});
+
+// Voltou a ter internet: recarrega os dados sozinho, para a tela não
+// ficar mostrando o que estava valendo antes da queda.
+window.addEventListener('online', () => {
+  if (typeof recarregar === 'function' && document.getElementById('painel')?.classList.contains('ativo')) {
+    recarregar().catch(() => {});
+  }
+});

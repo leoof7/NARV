@@ -28,6 +28,16 @@ function dataLocal(d = new Date()) {
 const hoje = () => dataLocal();
 const inicioDoMes = () => dataLocal().slice(0, 8) + '01';
 
+// "Setembro de 2026" — a pessoa entende na hora de que periodo
+// aquele bloco esta falando.
+const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho',
+                  'julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function nomeDoMes(d = new Date()) {
+  const nome = MESES_PT[d.getMonth()];
+  return nome.charAt(0).toUpperCase() + nome.slice(1) + ' de ' + d.getFullYear();
+}
+
 function moeda(v) {
   // Quem não é dono recebe o valor como null do banco (migração 08).
   // Mostrar "R$ 0,00" aí seria mentira — é ausência de permissão, não
@@ -90,26 +100,90 @@ async function lerOrcamentos() {
     .select('*').order('criado_em', { ascending: false }).limit(200);
 }
 
+// Guarda o perfil e o negócio no estado.
+function perfilCarregado(perfil) {
+  estado.perfil  = perfil;
+  estado.negocio = perfil.negocios || {};
+}
+
+// A meta vem por função, não pelo select: ela é dado do dono e a
+// tabela não deixa mais lê-la direto (migração 12). Para quem não é
+// dono, a função devolve nada — e a barra de meta simplesmente não
+// aparece, que é o comportamento certo.
+async function carregarMinhaMeta() {
+  if (estado.perfil?.papel !== 'dono') return;
+
+  const { data, error } = await sb.rpc('minha_meta');
+  if (error) {
+    // Migração 07 ainda não rodou: cai para a leitura antiga.
+    const { data: n } = await sb.from('negocios')
+      .select('prolabore_valor, prolabore_dia').eq('id', estado.perfil.negocio_id).maybeSingle();
+    if (n) Object.assign(estado.negocio, n);
+    return;
+  }
+  if (data) Object.assign(estado.negocio, data);
+}
+
+// Descobre quais migrações já rodaram, perguntando ao banco por cada
+// coluna. Pedir uma coluna que não existe devolve erro na hora, sem
+// depender de haver dado na tabela.
+async function detectarColunas() {
+  const temColuna = async (tabela, coluna) => {
+    const { error } = await sb.from(tabela).select(coluna).limit(1);
+    return !error;
+  };
+
+  const [hora, parcelas] = await Promise.all([
+    temColuna('atendimentos', 'hora'),
+    temColuna('atendimentos', 'parcelas')
+  ]);
+
+  estado.temHora     = hora;      // migração 06
+  estado.temParcelas = parcelas;  // migração 12
+}
+
 async function carregarTudo() {
   const id = await meuId();
   if (!id) return false;
 
   // O filtro por id é obrigatório: num negócio com equipe esta consulta
   // devolveria também os perfis dos colegas. Ver comentário em app.js.
+  // A meta (prolabore_valor / prolabore_dia) NÃO vem neste select, de
+  // propósito: ela é do dono, e a partir da migração 12 a tabela nem
+  // deixa mais lê-la direto. Quem precisa dela usa minha_meta(), que
+  // confere o papel antes de responder.
   const { data: perfil, error: erroPerfil } = await sb
     .from('perfis')
     .select('id, nome, papel, celular, foto_caminho, negocio_id, ' +
-            'negocios(id, nome, tipo_atividade, tem_equipe, prolabore_valor, prolabore_dia, logo_caminho)')
+            'negocios(id, nome, tipo_atividade, tem_equipe, logo_caminho, ' +
+            'cnpj, site, instagram, endereco, email)')
     .eq('id', id)
     .maybeSingle();
 
-  if (erroPerfil) { console.error('Kit Narv — perfil:', erroPerfil); return false; }
-  if (!perfil) return false;
+  if (erroPerfil) {
+    // Migração 12 ainda não rodou: as colunas novas não existem.
+    // Tenta de novo com o mínimo, para o app não ficar de fora do ar.
+    console.warn('Kit Narv — tentando carregar sem os campos novos:', erroPerfil.message);
+    const basico = await sb.from('perfis')
+      .select('id, nome, papel, celular, foto_caminho, negocio_id, ' +
+              'negocios(id, nome, tipo_atividade, tem_equipe, logo_caminho)')
+      .eq('id', id).maybeSingle();
+    if (basico.error || !basico.data) {
+      console.error('Kit Narv — perfil:', basico.error || 'sem perfil');
+      return false;
+    }
+    perfilCarregado(basico.data);
+  } else {
+    if (!perfil) return false;
+    perfilCarregado(perfil);
+  }
 
-  estado.perfil  = perfil;
-  estado.negocio = perfil.negocios;
+  await carregarMinhaMeta();
 
-  const ehDono = perfil.papel === 'dono';
+  // Daqui para baixo o perfil vem SEMPRE do estado, nunca da variável
+  // `perfil` — no caminho de recuperação acima ela fica nula, e usá-la
+  // aqui derrubava quem entrava com a migração 12 pendente.
+  const ehDono = estado.perfil.papel === 'dono';
 
   const [cat, cli, ate, orc] = await Promise.all([
     sb.from('servicos_catalogo').select('*').eq('ativo', true).order('nome'),
@@ -118,9 +192,13 @@ async function carregarTudo() {
     lerOrcamentos()
   ]);
 
-  // A coluna 'hora' so existe depois da migracao 06. Enquanto ela nao
-  // rodar, o app esconde o campo em vez de quebrar ao salvar.
-  estado.temHora = !!(ate.data?.[0] && 'hora' in ate.data[0]);
+  // Quais colunas novas o banco já tem.
+  //
+  // Antes isto olhava a PRIMEIRA LINHA de atendimentos — e quem acabou
+  // de criar a conta não tem nenhuma. O campo de hora nunca aparecia
+  // justamente para quem está começando. Agora pergunta ao banco pela
+  // coluna, o que funciona com a tabela vazia.
+  await detectarColunas();
 
   estado.catalogo     = cat.data || [];
   estado.clientes     = cli.data || [];
@@ -132,7 +210,9 @@ async function carregarTudo() {
   // Duas consultas com finalidades diferentes, de propósito:
   //
   //   LISTA  — os últimos 50, com todas as colunas, só para mostrar na tela.
-  //   TOTAIS — TODOS os registros, mas só as 4 colunas que entram na conta.
+  //   TOTAIS — TODOS os registros, mas só as colunas que entram na conta
+  //            e no gráfico de gastos. Sem `categoria`, o gráfico jogava
+  //            tudo em "Sem categoria".
   //
   // Antes havia só a lista, limitada a 200, e o saldo era somado em cima
   // dela. A partir do lançamento 201 o saldo passava a mentir: R$ 30.000
@@ -144,7 +224,7 @@ async function carregarTudo() {
     const [lan, ret, lanTotais, retTotais] = await Promise.all([
       sb.from('lancamentos').select('*').order('data', { ascending: false }).limit(50),
       sb.from('retiradas').select('*').order('data', { ascending: false }).limit(50),
-      sb.from('lancamentos').select('tipo, valor, data, natureza'),
+      sb.from('lancamentos').select('tipo, valor, data, natureza, categoria'),
       sb.from('retiradas').select('valor, data')
     ]);
     estado.lancamentos      = lan.data || [];
@@ -206,6 +286,10 @@ function resumo() {
     // Saída pessoal e retirada contam igual na meta: não importa por qual
     // caminho ela registrou, o dinheiro foi para ela do mesmo jeito.
     tiradoParaSiMes: retiradoMes + gastosPessoaisMes,
+    // O que sobrou olhando só este mês. E o que sobra tem que bater com
+    // as linhas que aparecem na tela — por isso sai daqui, e não de uma
+    // conta feita na hora de desenhar.
+    sobrouNoMes: entradasMes - despesasMes - retiradoMes,
     saldo: soma(entradas) - soma(saidas) - soma(retiradas),
     meta: Number(estado.negocio?.prolabore_valor || 0)
   };
@@ -661,24 +745,54 @@ function desenharFinanceiro() {
     '<p class="valor verm" style="font-size:19px">Saída</p>' +
     '<p class="rotulo" style="margin:4px 0 0">Registrar dinheiro que saiu</p></button></div>';
 
-  h += '<p class="secao-titulo">Resumo do mês</p>';
-  h += resumoLinha('Entradas', r.entradasMes, 'verde');
-  h += resumoLinha('Saídas', r.despesasMes, 'verm');
-  h += resumoLinha('Você tirou para si', r.tiradoParaSiMes, '');
+  // O RESUMO DO MÊS FECHA EM SI MESMO.
+  //
+  // Antes, este bloco misturava duas bases: as linhas eram do mês e o
+  // "Saldo do negócio" era o acumulado de todos os tempos. Quem tinha
+  // uma saída no mês passado via "entradas 1.000, saídas 0, saldo 820"
+  // e não conseguia fechar a conta de cabeça. Num app de dinheiro isso
+  // derruba a confiança na tela inteira.
+  //
+  // Agora: o mês soma o mês, e o saldo acumulado fica separado, com o
+  // rótulo dizendo o que é.
+  h += '<p class="secao-titulo">' + escapar(nomeDoMes()) + '</p>';
+  h += resumoLinha('Dinheiro que entrou', r.entradasMes, 'verde');
+  h += resumoLinha('Dinheiro que saiu', r.despesasMes, 'verm');
   if (r.gastosPessoaisMes > 0) {
-    h += resumoLinha('  — marcado como pessoal', r.gastosPessoaisMes, 'discreto');
+    h += resumoLinha('&nbsp;&nbsp;— disso, marcado como pessoal', r.gastosPessoaisMes, 'discreto');
   }
-  h += resumoLinha('A receber', r.aReceber, 'laranj');
-  h += resumoLinha('Saldo do negócio', r.saldo, 'verde');
+  h += resumoLinha('Você tirou para si', r.tiradoParaSiMes, '');
+  h += resumoLinha('<strong>Sobrou este mês</strong>', r.sobrouNoMes,
+                   r.sobrouNoMes < 0 ? 'verm' : 'verde');
+
+  if (r.sobrouNoMes < 0) {
+    h += '<p class="rotulo" style="margin:8px 2px 0">Neste mês saiu mais do que entrou. ' +
+         'A diferença veio do que você já tinha guardado.</p>';
+  }
+
+  h += '<p class="secao-titulo">Saldo do negócio</p>';
+  h += '<div class="cartao"><p class="rotulo">Tudo que entrou menos tudo que saiu, ' +
+       'desde o começo</p><p class="valor ' + (r.saldo < 0 ? 'verm' : 'verde') + '">' +
+       moeda(r.saldo) + '</p>';
+
+  // Explica a diferença em vez de deixar a pessoa procurando.
+  const deMesesAnteriores = r.saldo - r.sobrouNoMes;
+  if (Math.abs(deMesesAnteriores) >= 0.01) {
+    h += '<p class="rotulo" style="margin:8px 0 0">' +
+         moeda(Math.abs(deMesesAnteriores)) +
+         (deMesesAnteriores > 0 ? ' vieram de meses anteriores.' : ' saíram em meses anteriores.') +
+         '</p>';
+  }
+  h += '</div>';
 
   if (r.aReceber > 0) {
-    h += '<p class="rotulo" style="margin:10px 2px 0">Se todos pagarem, o saldo vira ' +
-         moeda(r.saldo + r.aReceber) + '. Até lá, esse dinheiro ainda não é seu.</p>';
+    h += '<div class="cartao"><p class="rotulo">A receber</p>' +
+         '<p class="valor laranj">' + moeda(r.aReceber) + '</p>' +
+         '<p class="rotulo" style="margin:8px 0 0">Se todos pagarem, o saldo vira ' +
+         moeda(r.saldo + r.aReceber) + '. Até lá, esse dinheiro ainda não é seu.</p></div>';
   }
-  if (r.gastosPessoaisMes > 0) {
-    h += '<p class="rotulo" style="margin:8px 2px 0">Gasto pessoal não sai do caixa do negócio. ' +
-         'Ele fica registrado para você saber quanto gastou, mas não muda o saldo.</p>';
-  }
+
+  h += '<button class="btn btn-secundario" id="btn-grafico">Ver para onde vai o dinheiro</button>';
 
   h += '<p class="secao-titulo">Sua meta mensal</p>';
   h += '<button class="cartao" id="btn-meta">' +
@@ -709,6 +823,7 @@ function desenharFinanceiro() {
   $('#btn-entrada').addEventListener('click', () => abrirFormLancamento('entrada'));
   $('#btn-saida').addEventListener('click',   () => abrirFormLancamento('despesa'));
   $('#btn-meta').addEventListener('click',    abrirMeta);
+  $('#btn-grafico').addEventListener('click', abrirGraficoDeGastos);
   const br = $('#btn-retirada');
   if (br) br.addEventListener('click', abrirRetirada);
 }
@@ -736,6 +851,8 @@ function confirmar(titulo, textoHtml, rotuloSim = 'Confirmar', perigo = false) {
 
     const sim = $('#pg-sim');
     const nao = $('#pg-nao');
+    $('#pg-nao').style.display = '';
+    $('#pg-extra').style.display = 'none';
     sim.textContent = rotuloSim;
     sim.className = 'btn ' + (perigo ? 'btn-perigo' : 'btn-principal');
     nao.textContent = 'Cancelar';
@@ -755,20 +872,40 @@ function confirmar(titulo, textoHtml, rotuloSim = 'Confirmar', perigo = false) {
 }
 
 // Só avisa. Um botão, sem escolha.
-function avisarNaFolha(titulo, textoHtml) {
+//
+// O terceiro argumento é opcional: quando vem, aparece um segundo
+// botão que faz alguma coisa. É o que transforma "fale com a equipe"
+// de instrução em caminho — a pessoa não precisa achar a tela sozinha.
+function avisarNaFolha(titulo, textoHtml, acao) {
   $('#pg-titulo').textContent = titulo;
   $('#pg-texto').innerHTML = textoHtml || '';
-  const nao = $('#pg-nao');
+
   const sim = $('#pg-sim');
-  sim.textContent = 'Entendi';
-  sim.className = 'btn btn-principal';
   const novoSim = sim.cloneNode(true);
+  novoSim.textContent = 'Entendi';
+  novoSim.className = 'btn btn-principal';
   sim.replaceWith(novoSim);
   novoSim.addEventListener('click', () => fecharFolha('folha-pergunta'));
-  nao.style.display = 'none';
+
+  // Num aviso não existe o que cancelar: só há um caminho.
+  $('#pg-nao').style.display = 'none';
+
+  const extra = $('#pg-extra');
+  const novoExtra = extra.cloneNode(true);
+  extra.replaceWith(novoExtra);
+
+  if (acao) {
+    novoExtra.textContent = acao.rotulo;
+    novoExtra.style.display = 'flex';
+    novoExtra.addEventListener('click', () => {
+      fecharFolha('folha-pergunta');
+      acao.fazer();
+    });
+  } else {
+    novoExtra.style.display = 'none';
+  }
+
   abrirFolha('folha-pergunta');
-  // devolve o botão Cancelar para as próximas perguntas
-  setTimeout(() => { nao.style.display = ''; }, 300);
 }
 
 function escapar(t) {
@@ -960,6 +1097,8 @@ function abrirFormServico() {
   $('#sv-endereco').value = '';
   marcarPastilha('#sv-situacao', 'pago');
   marcarPastilha('#sv-pagamento', 'Dinheiro');
+  encherParcelas('#sv-parcelas', 1);
+  atualizarParcelasServico();
   atualizarCampoOutro();
   limparAviso('aviso-servico');
   abrirFolha('folha-servico');
@@ -1035,6 +1174,8 @@ $('#form-servico').addEventListener('submit', async (e) => {
     ...(estado.temHora && $('#sv-hora').value ? { hora: $('#sv-hora').value } : {}),
     endereco: $('#sv-endereco').value.trim() || null,
     forma_pagamento: valorPastilha('#sv-pagamento'),
+    ...(estado.temParcelas && pagamentoParcelavel(valorPastilha('#sv-pagamento'))
+        ? { parcelas: Number($('#sv-parcelas').value) || 1 } : {}),
     situacao: situacao
   }).select().single();
 
@@ -1062,7 +1203,8 @@ function abrirFormLancamento(tipo) {
   $('#titulo-lancamento').textContent = tipo === 'entrada' ? 'Entrada' : 'Saída';
   $('#lc-valor').value = '';
   $('#lc-data').value = hoje();
-  $('#lc-categoria').value = '';
+  encherCategorias(tipo, null);
+  $('#lc-categoria-outra').value = '';
   $('#lc-obs').value = '';
   $('#campo-natureza').style.display = tipo === 'despesa' ? 'block' : 'none';
 
@@ -1102,7 +1244,7 @@ $('#form-lancamento').addEventListener('submit', async (e) => {
     tipo: tipo,
     valor: valor,
     data: $('#lc-data').value || hoje(),
-    categoria: $('#lc-categoria').value.trim() || null,
+    categoria: categoriaEscolhida(),
     natureza: tipo === 'despesa' ? (valorPastilha('#lc-natureza') || 'negocio') : null,
     cliente_id: $('#lc-cliente').value || null,
     observacao: $('#lc-obs').value.trim() || null
@@ -1140,10 +1282,16 @@ $('#form-meta').addEventListener('submit', async (e) => {
   ocupado(botao, true, 'Salvando…');
 
   const d = $('#mt-dia').value;
-  const { error } = await sb.from('negocios').update({
-    prolabore_valor: v,
-    prolabore_dia:   d === '' ? null : Number(d)
-  }).eq('id', estado.perfil.negocio_id);
+  const dia = d === '' ? null : Number(d);
+
+  // Salva pela função, que confere se quem está pedindo é o dono.
+  // Se a migração 07 ainda não rodou, cai no caminho antigo.
+  let { error } = await sb.rpc('salvar_minha_meta', { p_valor: v, p_dia: dia });
+  if (error) {
+    ({ error } = await sb.from('negocios')
+      .update({ prolabore_valor: v, prolabore_dia: dia })
+      .eq('id', estado.perfil.negocio_id));
+  }
 
   ocupado(botao, false);
   if (error) return aviso('aviso-meta', mensagemDeErro(error));
@@ -1825,19 +1973,7 @@ $('#aj-sair-tudo').addEventListener('click', async () => {
 // WhatsApp e ninguém sabe em que tela ela estava.
 $('#aj-reportar').addEventListener('click', () => {
   fecharFolha('folha-ajustes');
-
-  const aba = $('.abas button.ativa')?.textContent?.trim() || 'Início';
-  const contexto =
-    'Oi, equipe Narv! Achei um problema no app.\n\n' +
-    'O que aconteceu: (conte aqui)\n\n' +
-    '--- para a equipe ---\n' +
-    'Tela: ' + aba + '\n' +
-    'Perfil: ' + (estado.perfil?.papel || '?') + '\n' +
-    'Atividade: ' + (estado.negocio?.tipo_atividade || '?') + '\n' +
-    'Quando: ' + new Date().toLocaleString('pt-BR');
-
-  window.open('https://wa.me/5531971589587?text=' + encodeURIComponent(contexto),
-              '_blank', 'noopener');
+  falarComAEquipe();
 });
 
 
@@ -1933,3 +2069,336 @@ $('#aj-renda').addEventListener('click', async () => {
     avisarNaFolha('Não deu certo', escapar(e.message || 'Não consegui gerar o comprovante.'));
   }
 });
+
+
+// ------------------------------------------------------------
+// Dados do negócio
+//
+// É o que aparece no orçamento que vai para o cliente. O CNPJ é o
+// mais pedido: empresa costuma precisar dele para poder pagar.
+// ------------------------------------------------------------
+
+$('#aj-negocio').addEventListener('click', () => {
+  if (estado.perfil.papel !== 'dono') {
+    return avisarNaFolha('Área do dono',
+      'Só o dono do negócio pode alterar estes dados.');
+  }
+
+  fecharFolha('folha-ajustes');
+  const n = estado.negocio || {};
+  $('#ng-nome').value      = n.nome || '';
+  $('#ng-cnpj').value      = n.cnpj || '';
+  $('#ng-instagram').value = n.instagram || '';
+  $('#ng-site').value      = n.site || '';
+  $('#ng-endereco').value  = n.endereco || '';
+  $('#ng-email').value     = n.email || '';
+  limparAviso('aviso-negocio');
+  abrirFolha('folha-negocio');
+});
+
+// Escreve o CNPJ do jeito que a pessoa reconhece enquanto ela digita.
+$('#ng-cnpj').addEventListener('input', () => {
+  const campo = $('#ng-cnpj');
+  const d = campo.value.replace(/\D/g, '').slice(0, 14);
+  let saida = d;
+  if (d.length > 2)  saida = d.slice(0,2) + '.' + d.slice(2);
+  if (d.length > 5)  saida = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5);
+  if (d.length > 8)  saida = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' + d.slice(8);
+  if (d.length > 12) saida = d.slice(0,2) + '.' + d.slice(2,5) + '.' + d.slice(5,8) + '/' +
+                             d.slice(8,12) + '-' + d.slice(12);
+  campo.value = saida;
+});
+
+// O Instagram é guardado sem @ e sem endereço, só o nome do perfil —
+// assim o rodapé do PDF fica limpo e o link sempre funciona.
+$('#ng-instagram').addEventListener('input', () => {
+  const campo = $('#ng-instagram');
+  campo.value = campo.value.trim()
+    .replace(/^@+/, '')
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/\/.*$/, '')
+    .replace(/[^A-Za-z0-9._]/g, '');
+});
+
+$('#form-negocio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const cnpj = $('#ng-cnpj').value.trim();
+  const soDigitos = cnpj.replace(/\D/g, '');
+  if (cnpj && soDigitos.length !== 14) {
+    return aviso('aviso-negocio',
+      'O CNPJ tem 14 números. Você digitou ' + soDigitos.length + '. Confira ou deixe vazio.');
+  }
+
+  const botao = $('#btn-salvar-negocio');
+  ocupado(botao, true, 'Salvando…');
+
+  const vazio = (id) => $('#' + id).value.trim() || null;
+  const dados = {
+    nome:      vazio('ng-nome'),
+    cnpj:      cnpj || null,
+    instagram: vazio('ng-instagram'),
+    site:      vazio('ng-site'),
+    endereco:  vazio('ng-endereco'),
+    email:     vazio('ng-email')
+  };
+
+  const { error } = await sb.from('negocios').update(dados).eq('id', estado.perfil.negocio_id);
+
+  ocupado(botao, false);
+
+  if (error) {
+    // A migração 12 ainda não rodou: as colunas novas não existem.
+    if ((error.message || '').includes('column') || error.code === 'PGRST204') {
+      return aviso('aviso-negocio',
+        'O banco ainda não tem os campos novos. Rode a migração 12.');
+    }
+    return aviso('aviso-negocio', mensagemDeErro(error));
+  }
+
+  fecharFolha('folha-negocio');
+  await recarregar();
+  avisarNaFolha('Salvo', 'Estes dados já vão aparecer no próximo orçamento que você mandar.');
+});
+
+
+// ------------------------------------------------------------
+// Parcelas
+//
+// "R$ 1.560 no cartão em 3x" é uma informação diferente de
+// "R$ 1.560". Quem recebe precisa dela para decidir — e quem cobra
+// precisa dela para saber o que vai entrar por mês.
+// ------------------------------------------------------------
+
+// Só faz sentido parcelar no cartão ou quando ela diz "parcelado".
+function pagamentoParcelavel(forma) {
+  return forma === 'Cartão' || forma === 'Parcelado';
+}
+
+function encherParcelas(seletor, escolhida) {
+  const sel = $(seletor);
+  if (!sel) return;
+  let h = '';
+  for (let i = 1; i <= 12; i++) {
+    h += '<option value="' + i + '"' + (Number(escolhida) === i ? ' selected' : '') + '>' +
+         (i === 1 ? 'À vista (1x)' : i + 'x') + '</option>';
+  }
+  sel.innerHTML = h;
+}
+
+// Mostra quanto fica cada parcela, para ela conferir antes de mandar.
+function mostrarValorDaParcela(seletorDica, valor, parcelas) {
+  const el = $(seletorDica);
+  if (!el) return;
+  const n = Number(parcelas || 1);
+  if (!valor || n <= 1) { el.textContent = ''; return; }
+  el.textContent = n + ' parcelas de ' + moeda(valor / n);
+}
+
+function atualizarParcelasServico() {
+  const forma = valorPastilha('#sv-pagamento');
+  const mostra = pagamentoParcelavel(forma) && estado.temParcelas;
+  $('#campo-parcelas').style.display = mostra ? 'block' : 'none';
+  if (mostra) mostrarValorDaParcela('#sv-parcela-valor', lerDinheiro('#sv-valor'), $('#sv-parcelas').value);
+}
+
+$$('#sv-pagamento button').forEach(b => b.addEventListener('click', atualizarParcelasServico));
+$('#sv-parcelas')?.addEventListener('change', atualizarParcelasServico);
+$('#sv-valor')?.addEventListener('input', atualizarParcelasServico);
+
+
+// ------------------------------------------------------------
+// Categorias de entrada e saída
+//
+// Era campo de texto livre. A pessoa escrevia "esmalte", "Esmalte",
+// "esmaltes" e "esmalte gel" — quatro fatias diferentes no gráfico,
+// para a mesma coisa. Lista escolhida faz o dado nascer limpo.
+//
+// "Outro" continua existindo: lista fechada demais faz a pessoa
+// escolher qualquer coisa só para passar da tela, e aí o dado mente.
+// ------------------------------------------------------------
+
+const CATEGORIAS_SAIDA = {
+  comum: ['Material de trabalho', 'Transporte e combustível', 'Alimentação',
+          'Ferramenta ou equipamento', 'Telefone e internet', 'Ajudante ou parceiro',
+          'Aluguel', 'Água e luz', 'Imposto ou taxa', 'Saúde', 'Casa e família'],
+
+  // Cada profissão gasta com coisas diferentes. Mostrar o que ela
+  // realmente compra evita que "Outro" vire a resposta padrão.
+  'Manicure e pedicure': ['Esmalte', 'Alicate e lixa', 'Acetona e algodão', 'Gel e acrílico'],
+  'Cabeleireiro(a)':     ['Tinta e coloração', 'Shampoo e produtos', 'Tesoura e máquina'],
+  'Barbeiro':            ['Lâmina e navalha', 'Máquina e pente', 'Produtos de barba'],
+  'Esteticista':         ['Cosméticos', 'Cera e descartáveis'],
+  'Podólogo(a)':         ['Instrumentos', 'Descartáveis', 'Medicação'],
+  'Maquiador(a)':        ['Maquiagem', 'Pincéis e esponjas'],
+  'Diarista':            ['Produto de limpeza', 'Pano e vassoura'],
+  'Costureira':          ['Tecido', 'Linha e aviamento', 'Agulha e zíper'],
+  'Pedreiro':            ['Cimento e areia', 'Tijolo e bloco', 'Ferramenta'],
+  'Pintor':              ['Tinta', 'Massa corrida', 'Rolo, pincel e lixa', 'Fita e lona'],
+  'Eletricista':         ['Fio e cabo', 'Disjuntor e tomada', 'Ferramenta'],
+  'Encanador':           ['Cano e conexão', 'Registro e torneira', 'Veda rosca'],
+  'Marceneiro':          ['Madeira e MDF', 'Parafuso e dobradiça', 'Verniz e cola'],
+  'Gesseiro':            ['Gesso', 'Perfil e parafuso'],
+  'Serralheiro':         ['Ferro e metalon', 'Eletrodo e disco'],
+  'Jardineiro':          ['Muda e semente', 'Adubo e terra', 'Combustível de máquina'],
+  'Mecânico':            ['Peça', 'Óleo e filtro', 'Ferramenta'],
+  'Motorista':           ['Combustível', 'Manutenção do veículo', 'Pedágio']
+};
+
+const CATEGORIAS_ENTRADA = ['Serviço feito', 'Sinal ou entrada', 'Venda de produto',
+                            'Gorjeta', 'Recebimento atrasado'];
+
+function categoriasPara(tipo) {
+  if (tipo === 'entrada') return CATEGORIAS_ENTRADA;
+  const daAtividade = CATEGORIAS_SAIDA[estado.negocio?.tipo_atividade] || [];
+  return daAtividade.concat(CATEGORIAS_SAIDA.comum);
+}
+
+function encherCategorias(tipo, escolhida) {
+  const lista = categoriasPara(tipo);
+  const conhecida = !escolhida || lista.includes(escolhida);
+
+  let h = '<option value="">Escolha…</option>';
+  lista.forEach(c => {
+    h += '<option value="' + escapar(c) + '"' +
+         (c === escolhida ? ' selected' : '') + '>' + escapar(c) + '</option>';
+  });
+  // Categoria antiga, escrita à mão antes desta lista existir: mantém,
+  // para o histórico dela não mudar de nome sozinho.
+  if (escolhida && !conhecida) {
+    h += '<option value="' + escapar(escolhida) + '" selected>' + escapar(escolhida) + '</option>';
+  }
+  h += '<option value="__outro__">Outro…</option>';
+
+  $('#lc-categoria').innerHTML = h;
+  atualizarCampoOutraCategoria();
+}
+
+function atualizarCampoOutraCategoria() {
+  const ehOutro = $('#lc-categoria').value === '__outro__';
+  $('#campo-outra-categoria').style.display = ehOutro ? 'block' : 'none';
+  if (ehOutro) $('#lc-categoria-outra').focus();
+}
+
+$('#lc-categoria').addEventListener('change', atualizarCampoOutraCategoria);
+
+// O que vai para o banco: o nome escolhido, ou o que ela escreveu.
+function categoriaEscolhida() {
+  const v = $('#lc-categoria').value;
+  if (v === '__outro__') return $('#lc-categoria-outra').value.trim() || null;
+  return v || null;
+}
+
+
+// ------------------------------------------------------------
+// Para onde vai o dinheiro
+//
+// Barras horizontais, não pizza: em tela de celular, sob sol forte,
+// comparar comprimento é fácil e comparar ângulo é difícil. E barra
+// deixa o valor escrito ao lado, que é o que ela quer saber.
+// ------------------------------------------------------------
+
+function gastosPorCategoria(mesesAtras = 0) {
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() - mesesAtras);
+  const de  = dataLocal(base);
+  const ate = dataLocal(new Date(base.getFullYear(), base.getMonth() + 1, 0));
+
+  const saidas = (estado.lancamentosTotal || [])
+    .filter(l => l.tipo === 'despesa' && l.data >= de && l.data <= ate);
+
+  const porCategoria = {};
+  saidas.forEach(l => {
+    const nome = (l.categoria || '').trim() || 'Sem categoria';
+    porCategoria[nome] = (porCategoria[nome] || 0) + Number(l.valor || 0);
+  });
+
+  const linhas = Object.keys(porCategoria)
+    .map(nome => ({ nome, total: porCategoria[nome] }))
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    linhas,
+    total: linhas.reduce((s, l) => s + l.total, 0),
+    mes: nomeDoMes(base),
+    quantos: saidas.length
+  };
+}
+
+// Cores da marca, na ordem. A maior fatia fica com o azul principal.
+const CORES_GRAFICO = ['#1E3F91', '#F5851F', '#17593A', '#D9569A',
+                       '#F9B32B', '#A31208', '#5A6472'];
+
+function desenharGraficoDeGastos() {
+  const g = gastosPorCategoria(estado.mesDoGrafico || 0);
+
+  let h = '<div class="linha-topo" style="margin-bottom:14px">' +
+          '<button class="voltar" data-fecha="folha-gastos" type="button">‹</button>' +
+          '<h3>Para onde vai o dinheiro</h3></div>';
+
+  h += '<div class="pastilhas" id="mes-grafico">' +
+       [[0, 'Este mês'], [1, 'Mês passado'], [2, 'Dois meses atrás']]
+         .map(([v, rot]) => '<button type="button" data-valor="' + v + '"' +
+              ((estado.mesDoGrafico || 0) === v ? ' class="marcada"' : '') + '>' + rot + '</button>')
+         .join('') + '</div>';
+
+  if (!g.linhas.length) {
+    h += '<div class="vazio"><strong>Nada em ' + escapar(g.mes) + '</strong>' +
+         'Quando você registrar saídas, elas aparecem aqui separadas por tipo.</div>';
+    $('#conteudo-gastos').innerHTML = h;
+    ligarMesDoGrafico();
+    return;
+  }
+
+  h += '<div class="cartao" style="margin-top:14px"><p class="rotulo">' +
+       escapar(g.mes) + ' · ' + g.quantos + ' saída(s)</p>' +
+       '<p class="valor verm">' + moeda(g.total) + '</p></div>';
+
+  const maior = g.linhas[0].total;
+
+  h += '<div class="barras">';
+  g.linhas.forEach((l, i) => {
+    const pct = maior > 0 ? (l.total / maior) * 100 : 0;
+    const doTotal = g.total > 0 ? Math.round((l.total / g.total) * 100) : 0;
+    const cor = CORES_GRAFICO[i % CORES_GRAFICO.length];
+
+    h += '<div class="barra-linha">' +
+         '<div class="barra-topo">' +
+         '<span class="barra-nome">' + escapar(l.nome) + '</span>' +
+         '<span class="barra-valor">' + moeda(l.total) + '</span></div>' +
+         '<div class="barra-trilho">' +
+         '<i style="width:' + pct.toFixed(1) + '%;background:' + cor + '"></i></div>' +
+         '<span class="barra-pct">' + doTotal + '% do que saiu</span>' +
+         '</div>';
+  });
+  h += '</div>';
+
+  // A frase que faz o gráfico virar decisão, em vez de enfeite.
+  const campea = g.linhas[0];
+  if (g.linhas.length > 1) {
+    h += '<p class="rotulo" style="margin:16px 2px 0">Seu maior gasto em ' +
+         escapar(g.mes.toLowerCase()) + ' foi <strong>' + escapar(campea.nome) +
+         '</strong>: ' + moeda(campea.total) + '. É aí que dá para economizar mais.</p>';
+  }
+
+  $('#conteudo-gastos').innerHTML = h;
+  ligarMesDoGrafico();
+}
+
+function ligarMesDoGrafico() {
+  $$('#mes-grafico button').forEach(b =>
+    b.addEventListener('click', () => {
+      estado.mesDoGrafico = Number(b.dataset.valor);
+      desenharGraficoDeGastos();
+    }));
+  $$('#conteudo-gastos [data-fecha]').forEach(b =>
+    b.addEventListener('click', () => fecharFolha(b.dataset.fecha)));
+}
+
+function abrirGraficoDeGastos() {
+  estado.mesDoGrafico = 0;
+  desenharGraficoDeGastos();
+  abrirFolha('folha-gastos');
+  registrar('viu_grafico_gastos');
+}

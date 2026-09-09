@@ -46,7 +46,14 @@ async function vencerOsVencidos() {
 // Lista
 // ------------------------------------------------------------
 
+// A coluna 'parcelas' so existe depois da migracao 12.
+function detectarParcelasOrc() {
+  const o = (estado.orcamentos || [])[0];
+  estado.temParcelasOrc = o ? ('parcelas' in o) : estado.temParcelas;
+}
+
 function desenharOrcamentos() {
+  detectarParcelasOrc();
   const lista = estado.orcamentos || [];
 
   if (!lista.length) {
@@ -189,6 +196,10 @@ function abrirFormOrcamento(orc) {
     $('#or-validade').value = dataLocal(d);
   }
 
+  marcarPastilha('#or-pagamento', orc ? (orc.forma_pagamento || '') : '');
+  encherParcelas('#or-parcelas', orc ? (orc.parcelas || 1) : 1);
+  atualizarParcelasOrcamento();
+
   limparAviso('aviso-orcamento');
   abrirFolha('folha-orcamento');
 }
@@ -217,6 +228,12 @@ $('#form-orcamento').addEventListener('submit', async (e) => {
     endereco:   $('#or-endereco').value.trim() || null,
     referencia: $('#or-referencia').value.trim() || null
   };
+
+  if (estado.temParcelasOrc) {
+    const forma = valorPastilha('#or-pagamento');
+    dados.forma_pagamento = forma || null;
+    dados.parcelas = pagamentoParcelavel(forma) ? (Number($('#or-parcelas').value) || 1) : null;
+  }
 
   const editando = estado.orcamentoEditando;
   const { error } = editando
@@ -259,6 +276,8 @@ function abrirOrcamento(id) {
   }
 
   const linhas = [];
+  const pg = textoPagamento(o);
+  if (pg)           linhas.push(['Pagamento', pg]);
   if (o.prazo)      linhas.push(['Prazo', o.prazo]);
   if (o.validade)   linhas.push(['Vale até', dataCurta(o.validade)]);
   if (o.endereco)   linhas.push(['Endereço', o.endereco]);
@@ -287,6 +306,9 @@ function abrirOrcamento(id) {
     h += '<button class="btn btn-principal" id="orc-virar">Transformar em serviço</button>';
   }
   h += '<button class="btn btn-secundario" id="orc-editar">Editar</button>';
+  if (o.origem === 'calculadora') {
+    h += '<button class="btn btn-secundario" id="orc-editar-conta">Editar a conta do preço</button>';
+  }
   h += '<button class="btn btn-secundario" id="orc-duplicar">Duplicar</button>';
   h += '<button class="btn btn-perigo" id="orc-apagar">Apagar orçamento</button>';
 
@@ -307,6 +329,12 @@ function abrirOrcamento(id) {
   $('#orc-link').addEventListener('click', () => mandarLinkDeAprovacao(o, c));
 
   $('#orc-duplicar').addEventListener('click', () => duplicarOrcamento(o));
+
+  const ec = $('#orc-editar-conta');
+  if (ec) ec.addEventListener('click', () => {
+    fecharFolha('folha-ver-orcamento');
+    abrirCalculadoraParaEditar(o);
+  });
 
   const v = $('#orc-virar');
   if (v) v.addEventListener('click', () => virarServico(o));
@@ -648,4 +676,33 @@ async function mandarLinkDeAprovacao(o, c) {
     avisarNaFolha('Link do orçamento', escapar(link));
   }
   if (o.status === 'rascunho') await trocarStatus(o, 'enviado');
+}
+
+
+// ------------------------------------------------------------
+// Forma de pagamento no orçamento
+// ------------------------------------------------------------
+
+function atualizarParcelasOrcamento() {
+  const forma = valorPastilha('#or-pagamento');
+  const mostra = pagamentoParcelavel(forma) && estado.temParcelasOrc;
+  $('#campo-or-parcelas').style.display = mostra ? 'block' : 'none';
+  if (mostra) {
+    mostrarValorDaParcela('#or-parcela-valor', lerDinheiro('#or-valor'), $('#or-parcelas').value);
+  }
+}
+
+$$('#or-pagamento button').forEach(b => b.addEventListener('click', atualizarParcelasOrcamento));
+$('#or-parcelas')?.addEventListener('change', atualizarParcelasOrcamento);
+$('#or-valor')?.addEventListener('input', atualizarParcelasOrcamento);
+
+// Como o cliente pode pagar, em uma linha, para reaproveitar em toda
+// parte que mostra isso: detalhe, PDF, WhatsApp e página do cliente.
+function textoPagamento(o) {
+  if (!o.forma_pagamento) return '';
+  const n = Number(o.parcelas || 1);
+  if (n > 1 && Number(o.valor) > 0) {
+    return o.forma_pagamento + ' em ' + n + 'x de ' + moeda(Number(o.valor) / n);
+  }
+  return o.forma_pagamento;
 }

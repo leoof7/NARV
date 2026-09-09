@@ -722,3 +722,28 @@ button.cartao { width: 100%; text-align: left; font-family: inherit;
   font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
 }
 .escolha-status.atual { border-color: var(--azul); }
+
+/* ---------- gráfico de gastos ---------- */
+
+.barras { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+
+.barra-linha { display: flex; flex-direction: column; gap: 5px; }
+
+.barra-topo {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.barra-nome  { font-weight: 600; font-size: 16px; }
+.barra-valor { font-weight: 600; font-size: 16px; white-space: nowrap;
+               font-variant-numeric: tabular-nums; }
+
+.barra-trilho {
+  height: 12px; background: var(--borda); border-radius: 6px; overflow: hidden;
+}
+.barra-trilho i { display: block; height: 100%; border-radius: 6px; }
+
+.barra-pct { font-size: 13px; color: var(--cinza); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .barra-trilho i { animation: cresce .4s ease-out; }
+  @keyframes cresce { from { width: 0 !important; } }
+}

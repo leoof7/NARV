@@ -114,6 +114,15 @@
         <p class="dica">No mínimo 8 caracteres.</p>
       </div>
 
+      <div class="campo" id="campo-senha2">
+        <label for="c-senha2">Repita a senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="c-senha2" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+        <p class="dica">Se errar a senha e esquecer, só a equipe Narv consegue te ajudar.</p>
+      </div>
+
       <div class="campo">
         <label for="c-tipo">O que você faz</label>
         <select id="c-tipo" required>
@@ -198,6 +207,14 @@
         <label for="v-senha">Crie uma senha</label>
         <div class="senha-caixa">
           <input type="password" id="v-senha" autocomplete="new-password" minlength="8" required>
+          <button type="button">mostrar</button>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="v-senha2">Repita a senha</label>
+        <div class="senha-caixa">
+          <input type="password" id="v-senha2" autocomplete="new-password" minlength="8" required>
           <button type="button">mostrar</button>
         </div>
       </div>
@@ -363,6 +380,12 @@
           <button type="button" data-valor="Fiado">Fiado</button>
         </div></div>
 
+      <div class="campo" id="campo-parcelas" style="display:none">
+        <label for="sv-parcelas">Em quantas vezes</label>
+        <select id="sv-parcelas"></select>
+        <p class="dica" id="sv-parcela-valor"></p>
+      </div>
+
       <details class="opcional">
         <summary>Mais detalhes (opcional)</summary>
         <div class="conteudo">
@@ -420,6 +443,21 @@
       <div class="campo"><label for="or-valor">Quanto você vai cobrar</label>
         <input type="text" id="or-valor" data-dinheiro inputmode="decimal" required></div>
 
+      <div class="campo"><label>Como o cliente pode pagar</label>
+        <div class="pastilhas rolante" id="or-pagamento">
+          <button type="button" data-valor="" class="marcada">Não dizer</button>
+          <button type="button" data-valor="À vista">À vista</button>
+          <button type="button" data-valor="Pix">Pix</button>
+          <button type="button" data-valor="Cartão">Cartão</button>
+          <button type="button" data-valor="Parcelado">Parcelado</button>
+        </div></div>
+
+      <div class="campo" id="campo-or-parcelas" style="display:none">
+        <label for="or-parcelas">Em quantas vezes</label>
+        <select id="or-parcelas"></select>
+        <p class="dica" id="or-parcela-valor"></p>
+      </div>
+
       <div class="campo"><label for="or-prazo">Prazo</label>
         <input type="text" id="or-prazo" placeholder="5 dias úteis"></div>
 
@@ -448,7 +486,7 @@
   <div class="painel-folha com-rodape">
     <div class="linha-topo">
       <button class="voltar" data-fecha="folha-calculadora" type="button">‹</button>
-      <h3>Calcular o preço</h3>
+      <h3 id="titulo-calculadora">Calcular o preço</h3>
     </div>
     <div class="aviso" id="aviso-calculadora"></div>
 
@@ -579,12 +617,63 @@
 </div>
 
 
+<!-- ========== FOLHA: DADOS DO NEGÓCIO ========== -->
+<div class="folha cheia" id="folha-negocio">
+  <div class="painel-folha">
+    <div class="linha-topo">
+      <button class="voltar" data-fecha="folha-negocio" type="button">‹</button>
+      <h3>Dados do meu negócio</h3>
+    </div>
+    <p style="color:#5A6472;margin:0 0 18px">
+      Tudo aqui aparece no orçamento que você manda para o cliente.
+    </p>
+    <div class="aviso" id="aviso-negocio"></div>
+    <form id="form-negocio">
+      <div class="campo"><label for="ng-nome">Nome do negócio</label>
+        <input type="text" id="ng-nome" placeholder="Studio Cida Unhas"></div>
+
+      <div class="campo"><label for="ng-cnpj">CNPJ</label>
+        <input type="text" id="ng-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00">
+        <p class="dica">Empresa costuma pedir para poder pagar. Deixe vazio se você não tem.</p></div>
+
+      <div class="campo"><label for="ng-instagram">Instagram</label>
+        <input type="text" id="ng-instagram" placeholder="seuperfil" autocapitalize="none">
+        <p class="dica">Só o nome do perfil, sem o @. Vai no rodapé do orçamento.</p></div>
+
+      <div class="campo"><label for="ng-site">Site</label>
+        <input type="text" id="ng-site" placeholder="www.seusite.com.br" autocapitalize="none"></div>
+
+      <details class="opcional">
+        <summary>Endereço e e-mail (opcional)</summary>
+        <div class="conteudo">
+          <div class="campo"><label for="ng-endereco">Endereço</label>
+            <input type="text" id="ng-endereco" placeholder="rua, número, bairro"></div>
+          <div class="campo"><label for="ng-email">E-mail do negócio</label>
+            <input type="email" id="ng-email" autocapitalize="none"></div>
+        </div>
+      </details>
+
+      <button class="btn btn-principal" id="btn-salvar-negocio" type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ========== FOLHA: GRÁFICO DE GASTOS ========== -->
+<div class="folha cheia" id="folha-gastos">
+  <div class="painel-folha">
+    <div id="conteudo-gastos"></div>
+  </div>
+</div>
+
+
 <!-- ========== FOLHA: PERGUNTA (substitui confirm e alert) ========== -->
 <div class="folha" id="folha-pergunta">
   <div class="painel-folha">
     <h3 id="pg-titulo"></h3>
     <p id="pg-texto" style="color:#5A6472;margin:0 0 22px;line-height:1.5"></p>
     <button class="btn btn-principal" id="pg-sim">Confirmar</button>
+    <button class="btn btn-secundario" id="pg-extra" style="display:none"></button>
     <button class="btn-texto" id="pg-nao">Cancelar</button>
   </div>
 </div>
@@ -677,7 +766,12 @@
         <input type="date" id="lc-data" required></div>
 
       <div class="campo"><label for="lc-categoria">Do que se trata</label>
-        <input type="text" id="lc-categoria" placeholder="material, combustível, corte…"></div>
+        <select id="lc-categoria"></select></div>
+
+      <div class="campo" id="campo-outra-categoria" style="display:none">
+        <label for="lc-categoria-outra">Escreva do que se trata</label>
+        <input type="text" id="lc-categoria-outra" placeholder="o que você comprou ou recebeu">
+      </div>
 
       <div class="campo" id="campo-cliente-lanc"><label for="lc-cliente">Cliente (opcional)</label>
         <select id="lc-cliente"></select>
@@ -763,6 +857,9 @@
     <button class="item" id="aj-catalogo"><div class="corpo">
       <span class="titulo">Meus serviços e preços</span>
       <span class="sub" id="aj-qtd-servicos"></span></div><div class="direita">›</div></button>
+    <button class="item" id="aj-negocio"><div class="corpo">
+      <span class="titulo">Dados do meu negócio</span>
+      <span class="sub">Nome, CNPJ, site e Instagram — aparecem no orçamento</span></div><div class="direita">›</div></button>
     <button class="item" id="aj-imagem"><div class="corpo">
       <span class="titulo">Foto ou logo</span>
       <span class="sub">Aparece no app e no orçamento</span></div><div class="direita">›</div></button>

@@ -151,6 +151,9 @@ function abrirCalculadora() {
   }
 
   estado.totalMexido = false;
+  estado.calculadoraEditando = null;
+  $('#titulo-calculadora').textContent = 'Calcular o preço';
+  $('#btn-salvar-calculadora').textContent = 'Gerar';
 
   $('#ca-cliente').innerHTML = estado.clientes
     .map(c => '<option value="' + c.id + '">' + escapar(c.nome) + '</option>').join('');
@@ -223,6 +226,30 @@ $('#btn-salvar-calculadora').addEventListener('click', async () => {
   const botao = $('#btn-salvar-calculadora');
   ocupado(botao, true, 'Gerando…');
 
+  const editando = estado.calculadoraEditando;
+
+  const campos = {
+    titulo:   titulo,
+    valor:    total,
+    prazo:    $('#ca-prazo').value.trim() || null,
+    validade: $('#ca-validade').value || null
+  };
+
+  // Editando: troca os campos e REFAZ os itens, para a conta guardada
+  // continuar batendo com o que está na tela.
+  if (editando) {
+    const up = await sb.from('orcamentos').update(campos).eq('id', editando.id);
+    if (up.error) { ocupado(botao, false); return aviso('aviso-calculadora', mensagemDeErro(up.error)); }
+    await sb.from('orcamento_itens').delete().eq('orcamento_id', editando.id);
+    await gravarItens(editando.id, c);
+    ocupado(botao, false);
+    estado.calculadoraEditando = null;
+    fecharFolha('folha-calculadora');
+    await recarregar();
+    abrirAba('orcamentos');
+    return abrirOrcamento(editando.id);
+  }
+
   const { data: orc, error } = await sb.from('orcamentos').insert({
     negocio_id: estado.perfil.negocio_id,
     cliente_id: $('#ca-cliente').value,
@@ -237,37 +264,7 @@ $('#btn-salvar-calculadora').addEventListener('click', async () => {
 
   if (error) { ocupado(botao, false); return aviso('aviso-calculadora', mensagemDeErro(error)); }
 
-  // Guarda a conta inteira, mesmo que ela tenha arredondado o total.
-  // É isso que deixa duplicar o orçamento e reabrir a conta depois.
-  const itens = c.materiais.concat(c.outros).map(i => ({
-    orcamento_id: orc.id,
-    tipo: i.tipo,
-    descricao: i.descricao,
-    quantidade: i.quantidade,
-    valor_unitario: i.valor_unitario,
-    ordem: i.ordem
-  }));
-
-  if (c.trabalho > 0) {
-    itens.push({
-      orcamento_id: orc.id, tipo: 'trabalho',
-      descricao: c.unidade === 'dia' ? 'Diária' : 'Hora de trabalho',
-      quantidade: c.qtdTrab, valor_unitario: c.valorTrab, ordem: 90
-    });
-  }
-  if (c.deslocamento > 0) {
-    itens.push({
-      orcamento_id: orc.id, tipo: 'deslocamento', descricao: 'Deslocamento',
-      quantidade: 1, valor_unitario: c.deslocamento, ordem: 91
-    });
-  }
-  // O percentual vai em quantidade, como combinado no escopo.
-  itens.push({
-    orcamento_id: orc.id, tipo: 'margem', descricao: 'Ganho acima dos custos',
-    quantidade: c.pct, valor_unitario: c.ganho, ordem: 99
-  });
-
-  const { error: erroItens } = await sb.from('orcamento_itens').insert(itens);
+  const { error: erroItens } = await gravarItens(orc.id, c);
 
   ocupado(botao, false);
   if (erroItens) return aviso('aviso-calculadora', mensagemDeErro(erroItens));
@@ -278,3 +275,117 @@ $('#btn-salvar-calculadora').addEventListener('click', async () => {
   abrirAba('orcamentos');
   abrirOrcamento(orc.id);
 });
+
+
+// Grava a conta inteira em orcamento_itens. Serve para criar e para
+// editar — assim a conta guardada nunca fica diferente da tela.
+//
+// Guarda mesmo quando ela arredonda o total na mão: é isso que deixa
+// duplicar o orçamento e reabrir a conta depois.
+async function gravarItens(orcamentoId, c) {
+  const itens = c.materiais.concat(c.outros).map(i => ({
+    orcamento_id: orcamentoId,
+    tipo: i.tipo,
+    descricao: i.descricao,
+    quantidade: i.quantidade,
+    valor_unitario: i.valor_unitario,
+    ordem: i.ordem
+  }));
+
+  if (c.trabalho > 0) {
+    itens.push({
+      orcamento_id: orcamentoId, tipo: 'trabalho',
+      descricao: c.unidade === 'dia' ? 'Diária' : 'Hora de trabalho',
+      quantidade: c.qtdTrab, valor_unitario: c.valorTrab, ordem: 90
+    });
+  }
+  if (c.deslocamento > 0) {
+    itens.push({
+      orcamento_id: orcamentoId, tipo: 'deslocamento', descricao: 'Deslocamento',
+      quantidade: 1, valor_unitario: c.deslocamento, ordem: 91
+    });
+  }
+  // O percentual vai em quantidade, como combinado no escopo.
+  itens.push({
+    orcamento_id: orcamentoId, tipo: 'margem', descricao: 'Ganho acima dos custos',
+    quantidade: c.pct, valor_unitario: c.ganho, ordem: 99
+  });
+
+  return await sb.from('orcamento_itens').insert(itens);
+}
+
+
+// ------------------------------------------------------------
+// Editar a conta de um orçamento já criado
+//
+// Sem isto, orçamento feito na calculadora ficava com os itens
+// travados: se o cliente pedisse mais uma coisa, ela refazia tudo
+// do zero. Agora a conta volta como estava e ela só acrescenta.
+// ------------------------------------------------------------
+
+async function abrirCalculadoraParaEditar(orc) {
+  const itens = await itensDoOrcamento(orc.id);
+  if (!itens.length) {
+    return avisarNaFolha('Sem conta guardada',
+      'Este orçamento não tem a conta detalhada. Use "Editar" para mudar o valor direto.');
+  }
+
+  abrirCalculadora();
+  estado.calculadoraEditando = orc;
+  estado.totalMexido = true;   // o valor que ela já tinha manda
+
+  $('#titulo-calculadora').textContent = 'Editar a conta';
+  $('#btn-salvar-calculadora').textContent = 'Salvar';
+
+  // Cliente e título voltam como estavam
+  $('#ca-cliente').value = orc.cliente_id;
+  $('#ca-titulo').value  = orc.titulo || '';
+  $('#ca-prazo').value   = orc.prazo || '';
+  if (orc.validade) $('#ca-validade').value = orc.validade.slice(0, 10);
+
+  // Recria as linhas de material e de outros custos
+  $('#ca-materiais').innerHTML = '';
+  $('#ca-outros').innerHTML = '';
+
+  const porTipo = (t) => itens.filter(i => i.tipo === t);
+
+  const repor = (area, lista, padrao) => {
+    if (!lista.length) { linhaItem(area, padrao); return; }
+    lista.forEach(i => {
+      const linha = linhaItem(area, padrao);
+      linha.querySelector('.desc').value = i.descricao || '';
+      linha.querySelector('.qtd').value  = String(i.quantidade ?? 1).replace('.', ',');
+      linha.querySelector('.unit').value = String(i.valor_unitario ?? 0).replace('.', ',');
+    });
+  };
+
+  repor('ca-materiais', porTipo('material'), 'tinta, massa, lixa…');
+  repor('ca-outros',    porTipo('outro'),    'aluguel de andaime, ajudante…');
+
+  const trab = porTipo('trabalho')[0];
+  if (trab) {
+    $('#ca-qtd-trabalho').value   = String(trab.quantidade ?? '').replace('.', ',');
+    $('#ca-valor-trabalho').value = String(trab.valor_unitario ?? '').replace('.', ',');
+    const porHora = (trab.descricao || '').toLowerCase().includes('hora');
+    marcarPastilha('#ca-unidade', porHora ? 'hora' : 'dia');
+    $('#ca-rotulo-diaria').textContent = porHora ? 'Valor da hora' : 'Valor da diária';
+  }
+
+  const desl = porTipo('deslocamento')[0];
+  if (desl) $('#ca-deslocamento').value = String(desl.valor_unitario ?? '').replace('.', ',');
+
+  // O percentual foi guardado em `quantidade` na linha do ganho.
+  const ganho = porTipo('margem')[0];
+  const pct = ganho ? Number(ganho.quantidade || 0) : 20;
+  if ([10, 20, 30].includes(pct)) {
+    marcarPastilha('#ca-ganho', String(pct));
+    $('#ca-campo-outro-ganho').style.display = 'none';
+  } else {
+    marcarPastilha('#ca-ganho', 'outro');
+    $('#ca-campo-outro-ganho').style.display = 'block';
+    $('#ca-ganho-outro').value = String(pct).replace('.', ',');
+  }
+
+  recalcular();
+  escreverDinheiro('#ca-total', orc.valor);
+}

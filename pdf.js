@@ -65,126 +65,190 @@ async function montarPdf(o, cliente, itens) {
   }
 
   const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
-  const M = 18;                 // margem
-  const L = 210 - M * 2;        // largura útil
-  let y = M;
+  const M = 16;                 // margem
+  const LARG = 210;             // largura da folha A4
+  const L = LARG - M * 2;       // largura útil
+  const n = estado.negocio || {};
 
-  // ---------- topo: logo e negócio ----------
+  // ---------- FAIXA AZUL DO TOPO ----------
+  //
+  // A faixa resolve dois problemas de uma vez: dá presença ao papel
+  // logo no primeiro olhar, e faz o orçamento de quem NÃO tem logo
+  // parecer tão cuidado quanto o de quem tem — o nome do negócio em
+  // branco sobre o azul já sustenta o cabeçalho sozinho.
+  const ALTURA_FAIXA = 40;
+  doc.setFillColor(...AZUL_PDF);
+  doc.rect(0, 0, LARG, ALTURA_FAIXA, 'F');
+
   const logo = await logoParaPdf();
+  let x = M;
+
   if (logo) {
-    try { doc.addImage(logo, 'PNG', M, y, 24, 24, undefined, 'FAST'); } catch (e) { /* segue sem logo */ }
+    // Fundo branco atrás da logo: a maioria vem com fundo transparente
+    // ou claro, e sumiria no azul.
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(M, 9, 22, 22, 3, 3, 'F');
+    try { doc.addImage(logo, 'PNG', M + 2, 11, 18, 18, undefined, 'FAST'); } catch (e) { /* segue sem logo */ }
+    x = M + 28;
   }
 
-  const xTexto = logo ? M + 30 : M;
-  doc.setFont('helvetica', 'bold').setFontSize(17).setTextColor(...AZUL_PDF);
-  doc.text(estado.negocio?.nome || estado.perfil?.nome || 'Meu negócio', xTexto, y + 8);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold').setFontSize(19);
+  doc.text(doc.splitTextToSize(n.nome || estado.perfil?.nome || 'Meu negócio', L - (x - M) - 40)[0], x, 18);
 
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...CINZA_PDF);
-  const linhaTopo = [estado.perfil?.nome, telefoneBonito(estado.perfil?.celular)]
+  doc.setFont('helvetica', 'normal').setFontSize(9.5);
+  doc.setTextColor(200, 214, 240);
+  let yTopo = 24;
+  if (n.tipo_atividade) { doc.text(n.tipo_atividade, x, yTopo); yTopo += 4.6; }
+
+  const contato = [estado.perfil?.nome, telefoneBonito(estado.perfil?.celular)]
     .filter(Boolean).join(' · ');
-  if (linhaTopo) doc.text(linhaTopo, xTexto, y + 14);
-  if (estado.negocio?.tipo_atividade) doc.text(estado.negocio.tipo_atividade, xTexto, y + 19);
+  if (contato) { doc.text(contato, x, yTopo); yTopo += 4.6; }
+  if (n.cnpj) doc.text('CNPJ ' + n.cnpj, x, yTopo);
 
-  y += logo ? 30 : 24;
-  doc.setDrawColor(220, 214, 208).line(M, y, M + L, y);
-  y += 9;
+  // A palavra ORÇAMENTO na direita da faixa, como um carimbo.
+  doc.setFont('helvetica', 'bold').setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.text('ORÇAMENTO', LARG - M, 17, { align: 'right' });
+  doc.setFont('helvetica', 'normal').setFontSize(9);
+  doc.setTextColor(200, 214, 240);
+  doc.text(dataCurta(o.criado_em || hoje()), LARG - M, 22.5, { align: 'right' });
 
-  // ---------- título ----------
-  doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(0, 0, 0);
-  doc.text('Orçamento', M, y);
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...CINZA_PDF);
-  doc.text(dataCurta(o.criado_em || hoje()), M + L, y, { align: 'right' });
-  y += 10;
+  let y = ALTURA_FAIXA + 13;
 
-  // ---------- cliente ----------
-  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...AZUL_PDF);
-  doc.text('Para', M, y); y += 6;
+  // ---------- PARA QUEM ----------
+  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...CINZA_PDF);
+  doc.text('PARA', M, y); y += 6;
 
-  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(0, 0, 0);
-  doc.text(cliente?.nome || 'Cliente', M, y); y += 5.5;
+  doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(20, 32, 58);
+  doc.text(cliente?.nome || 'Cliente', M, y); y += 5.4;
 
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...CINZA_PDF);
+  doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(...CINZA_PDF);
   [ cliente?.empresa,
     cliente?.responsavel && 'Resp.: ' + cliente.responsavel,
     cliente?.cnpj && 'CNPJ ' + cliente.cnpj,
     telefoneBonito(cliente?.telefone),
-    cliente?.email,
-    cliente?.endereco
-  ].filter(Boolean).forEach(linha => {
-    doc.text(String(linha), M, y); y += 5;
-  });
-  y += 5;
+    cliente?.email
+  ].filter(Boolean).forEach(linha => { doc.text(String(linha), M, y); y += 4.6; });
+  y += 7;
 
-  // ---------- o serviço ----------
-  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...AZUL_PDF);
-  doc.text('Serviço', M, y); y += 6;
+  // ---------- O SERVIÇO ----------
+  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...CINZA_PDF);
+  doc.text('O SERVIÇO', M, y); y += 6.5;
 
-  doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(0, 0, 0);
-  doc.splitTextToSize(o.titulo || '', L).forEach(l => { doc.text(l, M, y); y += 6; });
+  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(...AZUL_PDF);
+  doc.splitTextToSize(o.titulo || '', L).forEach(l => { doc.text(l, M, y); y += 7; });
 
   if (o.descricao) {
-    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(60, 60, 60);
     y += 1;
+    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(60, 66, 78);
     doc.splitTextToSize(o.descricao, L).forEach(l => { doc.text(l, M, y); y += 5; });
   }
+
   if (o.endereco) {
-    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...CINZA_PDF);
-    y += 2;
-    doc.text('Onde: ' + o.endereco + (o.referencia ? ' (' + o.referencia + ')' : ''), M, y);
+    y += 3;
+    doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(...CINZA_PDF);
+    doc.text('Onde: ' + o.endereco + (o.referencia ? ' — ' + o.referencia : ''), M, y);
     y += 5;
   }
-  y += 6;
+  y += 7;
 
-  // ---------- o que está incluído ----------
+  // ---------- O QUE ESTÁ INCLUÍDO ----------
   //
-  // SEM VALORES, de propósito. A versão anterior mostrava quantidade,
-  // valor unitário e total de cada item — e a soma dava R$ 1.680 num
-  // orçamento de R$ 2.016. Qualquer cliente soma isso no celular e ou
-  // acha que tem erro, ou pede desconto exatamente da diferença.
-  //
-  // Aqui ele vê o que vai receber, que é o que dá segurança, sem que a
-  // formação do preço fique aberta. Preço é preço.
+  // SEM VALORES POR ITEM, de propósito. A versão anterior mostrava
+  // quantidade e preço de cada linha — e a soma dava R$ 1.680 num
+  // orçamento de R$ 2.016. Qualquer cliente faz essa conta no celular
+  // e ou acha que tem erro, ou pede desconto da diferença.
   // (Decidido com o Leandro em 31/08/2026.)
   const doCusto = (itens || []).filter(i => i.tipo !== 'margem');
   if (doCusto.length) {
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...AZUL_PDF);
-    doc.text('O que está incluído', M, y); y += 7;
+    const alturaBloco = 13 + doCusto.length * 6;
+    doc.setFillColor(250, 247, 244);
+    doc.roundedRect(M, y - 5, L, alturaBloco, 2.5, 2.5, 'F');
 
-    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(...CINZA_PDF);
+    doc.text('O QUE ESTÁ INCLUÍDO', M + 6, y + 1); y += 8;
+
+    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(20, 32, 58);
     doCusto.forEach(i => {
       const qtd = Number(i.quantidade || 0);
       const nome = i.descricao || rotuloDoTipo(i.tipo);
-
-      // "5 diárias" ajuda o cliente a entender o tamanho do serviço.
+      // "5 diárias" ajuda a entender o tamanho do serviço.
       // "1 tinta e massa" não ajuda ninguém, então o 1 some.
-      const linha = qtd > 1
-        ? String(qtd).replace('.', ',') + ' × ' + nome
-        : nome;
+      const texto = qtd > 1 ? String(qtd).replace('.', ',') + ' × ' + nome : nome;
 
-      doc.splitTextToSize('•  ' + linha, L).forEach(parte => {
-        doc.text(parte, M, y); y += 6;
-      });
+      doc.setFillColor(...AZUL_PDF);
+      doc.circle(M + 8, y - 1.2, 0.9, 'F');
+      doc.text(doc.splitTextToSize(texto, L - 20)[0], M + 12, y);
+      y += 6;
     });
-    y += 4;
+    y += 8;
   }
 
-  // ---------- total ----------
-  doc.setDrawColor(220, 214, 208).line(M, y, M + L, y);
-  y += 9;
-  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(0, 0, 0);
-  doc.text('Valor total', M, y);
-  doc.setFontSize(19).setTextColor(...VERDE_PDF);
-  doc.text(moedaPdf(o.valor), M + L, y + 1, { align: 'right' });
-  y += 12;
+  // ---------- O PREÇO ----------
+  const alturaPreco = 26;
+  doc.setFillColor(...VERDE_PDF);
+  doc.roundedRect(M, y - 4, L, alturaPreco, 3, 3, 'F');
 
-  // ---------- prazo e validade ----------
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...CINZA_PDF);
-  if (o.prazo)    { doc.text('Prazo: ' + o.prazo, M, y); y += 5; }
-  if (o.validade) { doc.text('Este orçamento vale até ' + dataCurta(o.validade), M, y); y += 5; }
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(190, 225, 205);
+  doc.text('VALOR TOTAL', M + 8, y + 4);
 
-  // ---------- rodapé ----------
-  doc.setFontSize(9).setTextColor(...CINZA_PDF);
-  doc.text('Orçamento gerado pelo Kit Narv', 105, 285, { align: 'center' });
+  doc.setFont('helvetica', 'bold').setFontSize(24).setTextColor(255, 255, 255);
+  doc.text(moedaPdf(o.valor), M + 8, y + 15);
+
+  // Forma de pagamento no canto direito do bloco verde.
+  const pg = typeof textoPagamento === 'function' ? textoPagamento(o) : '';
+  if (pg) {
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(190, 225, 205);
+    doc.text('COMO PAGAR', LARG - M - 8, y + 4, { align: 'right' });
+    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(255, 255, 255);
+    doc.splitTextToSize(pg, 70).slice(0, 2).forEach((l, i) => {
+      doc.text(l, LARG - M - 8, y + 12 + i * 5, { align: 'right' });
+    });
+  }
+  y += alturaPreco + 8;
+
+  // ---------- PRAZO E VALIDADE ----------
+  const info = [];
+  if (o.prazo)    info.push(['Prazo para fazer', o.prazo]);
+  if (o.validade) info.push(['Este orçamento vale até', dataCurta(o.validade)]);
+
+  if (info.length) {
+    doc.setDrawColor(228, 220, 214).setLineWidth(0.3);
+    info.forEach(([rot, val]) => {
+      doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(...CINZA_PDF);
+      doc.text(rot, M, y);
+      doc.setFont('helvetica', 'bold').setTextColor(20, 32, 58);
+      doc.text(String(val), LARG - M, y, { align: 'right' });
+      y += 5;
+      doc.line(M, y, LARG - M, y);
+      y += 5.5;
+    });
+  }
+
+  // ---------- RODAPÉ ----------
+  //
+  // Fica preso no fim da folha, não no fim do texto: assim o papel
+  // termina sempre igual, com orçamento curto ou longo.
+  const yRodape = 275;
+  doc.setDrawColor(228, 220, 214).setLineWidth(0.3);
+  doc.line(M, yRodape - 7, LARG - M, yRodape - 7);
+
+  const contatos = [];
+  if (n.instagram) contatos.push('@' + n.instagram);
+  if (n.site)      contatos.push(n.site.replace(/^https?:\/\//i, ''));
+  if (n.email)     contatos.push(n.email);
+
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(...AZUL_PDF);
+  if (contatos.length) doc.text(contatos.join('   ·   '), M, yRodape - 1);
+
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...CINZA_PDF);
+  doc.text('Orçamento gerado pelo Kit Narv', LARG - M, yRodape - 1, { align: 'right' });
+
+  if (n.endereco) {
+    doc.setFontSize(8).setTextColor(...CINZA_PDF);
+    doc.text(n.endereco, M, yRodape + 4);
+  }
 
   return doc;
 }
@@ -218,6 +282,8 @@ function telefoneBonito(t) {
 function mensagemDoOrcamento(o, cliente) {
   const partes = ['Olá, ' + primeiroNome(cliente?.nome) + '! Segue o orçamento de ' +
                   o.titulo + ': ' + moedaPdf(o.valor) + '.'];
+  const pg = typeof textoPagamento === 'function' ? textoPagamento(o) : '';
+  if (pg)         partes.push('Pagamento: ' + pg + '.');
   if (o.prazo)    partes.push('Prazo: ' + o.prazo + '.');
   if (o.validade) partes.push('Vale até ' + dataCurta(o.validade) + '.');
   partes.push('Qualquer dúvida é só chamar.');
