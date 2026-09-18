@@ -78,7 +78,18 @@ onde você está. Não dá para confundir.
 
 ## Passo 2 — Backup automático
 
-Já está pronto em `.github/workflows/backup.yml`. Falta só ligar:
+> **Situação em 17/09/2026:** o backup **funcionou** 13 vezes, de 28/08 a
+> 09/09/2026, e **falha desde 10/09** — 8 falhas seguidas. O segredo
+> `SUPABASE_SECRET_KEY` não está mais cadastrado no repositório.
+>
+> Some-se a isso que, desde 17/09/2026, **o banco não é mais da conta do
+> Leandro**: foi transferido para `redenarv@gmail.com`. Para religar o
+> backup é preciso uma chave secreta pedida a quem cuida dessa conta.
+>
+> Decisão pendente: religar o backup ou desligar a rotina para parar de
+> gerar falha todo dia.
+
+Está pronto em `.github/workflows/backup.yml`. Para ligar:
 
 1. Pegue a chave secreta:
    Supabase → Project Settings → API Keys → **Secret keys** → `default` →

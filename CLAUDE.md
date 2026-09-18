@@ -102,6 +102,16 @@ verdade — não aceite "revisei o código" como prova de que funciona.
 Hoje existe **um só** banco, `rtisqipntpnvlhetfoeb`, plano Free, e ele é
 produção com dados reais de participantes do piloto.
 
+**Mudança de 17/09/2026: o banco saiu da conta do Leandro.** Foi transferido
+para a conta `redenarv@gmail.com` (organização "Lorena de Oliveira"), com os
+dados dentro — nada foi exportado nem apagado. Endereço e chaves não mudaram,
+então o app continua funcionando igual. O Leandro deixou de ser dono: se o
+acesso for retirado, ele fica sem o banco. O projeto está entregue e essa
+consequência foi aceita por ele.
+
+Cópias do banco de 30 e 31/08/2026 estão fora do PC, no pacote
+`SENHAS E BACKUP (SQL)` do pen drive.
+
 O plano Free **não tem backup automático**. Exportar antes de qualquer
 mexida no banco é obrigatório, não recomendação.
 
